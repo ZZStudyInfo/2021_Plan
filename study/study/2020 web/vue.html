@@ -1,0 +1,457 @@
+MVVM是什么？和MVC 有什么区别？
+        MVVM:
+        M:	数据模型
+        V:  视图
+        VM:	是一个同步 View 和 Model 的对象
+        特点：
+        ①View 与 Model 不发生联系，都通过 ViewModel 进行交互
+        ②业务逻辑都在ViewModel
+        ③采用双向绑定（data-binding）：View的变动，自动反映在 ViewModel，反之亦然
+
+        双向绑定：
+        当用户操作 View(视图)，ViewModel 感知到变化，然后通知 Model 发生相应改变；
+        反之当 Model(数据) 发生改变，ViewModel 也能感知到变化，使 View 作出相应更新。
+   
+        优点：
+            ①View 和 Model 之间的同步工作完全是自动的，无需人为干涉
+            ②无需手动操作dom，只需要关注业务逻辑
+            ②提高了复用性：可以把一些视图逻辑放在一个ViewModel里面,让很多View重用这段视图逻辑。
+        缺点：Bug很难被调试
+       
+            
+    前端MVC(分离js)：   数据、表现、业务分离
+        M  数据  ajax/jsonp/数据解析  可以复用
+        V  视图表现层 展示数据、创建元素，变色，运动 可以复用
+        C  控制层(串业务,事件驱动)  一般不复用
+        特点：
+            ①View 传送指令到 Controller
+            ②Controller 完成业务逻辑后，要求 Model 改变状态
+            ③Model 将新的数据发送到 View，用户得到反馈
+        注释：所有通信都是单向的
+       
+    MVVM和MVC的区别:
+    ①MVVM通过数据来显示视图层而不是节点操作
+    ②MVVM双向绑定，View 与 Model 不发生联系；MVC单向通信，Model 影响 View
+
+vue特点：基于依赖追踪的观察并且使用异步队列更新
+    ①轻量级的框架
+    ②双向数据绑定
+    ③指令
+    ④插件化
+
+生命周期
+    ①beforeCreate //获取不到 props 或者 data 中的数据的，因为数据的初始化都在 initState 中。
+    ②created     //访问到props和data中的数据，但是组件还没挂载
+    ③beforeMount //创建 VDOM
+    ④mounted   // VDOM 渲染为真实 DOM 并且渲染数据。若有子组件，会递归挂载子组件，最后执行根组件的挂载钩子。
+    ⑤beforeUpdate //数据更新前
+    ⑥updated    //数据更新后
+    ⑦beforeDestroy // 适合移除事件、定时器等等，否则可能会引起内存泄露的问题
+    ⑧destroyed    //销毁操作：递归销毁子组件最后销毁根组件
+
+    keep-alive 独有生命周期：activated 和 deactivated
+    用 keep-alive 包裹的组件在切换时不会进行销毁，而是缓存到内存中并执行 deactivated 钩子函数，
+    命中缓存渲染后会执行 actived 钩子函数。
+
+数据绑定
+    双向绑定：
+        v-model（语法糖）:	创建双向数据绑定(M<->V) , 用在能生产数据的表单元素
+            input/radio/select/.....  绑定的是表单元素的  value值 
+
+        注释：v-model 默认会解析成名为 value 的 prop 和名为 input 的事件。这种语法糖的方式是典型的双向绑定，
+        常用于 UI 控件上，但是究其根本，还是通过事件的方法让父组件修改数据。
+    单向绑定：
+        :value="model层属性"
+        :checked="......"		
+
+    单向绑定模拟双向绑定:
+        :value="...."   model->view
+        v-on:input="fn($event.value)"  输入时把事件对象的value携带到方法，方法修改了model
+
+组件通信：
+    ①父子通信
+        父组件通过 props 传递数据给子组件：
+        <子 :自定义属性="父数据">
+        子组件: props:['自定义属性','自定义属性2']   props:{自定义属性:{type/default/required/...}}
+        
+        子组件通过 emit 发送事件传递数据给父组件
+        <子 @自定义事件="父方法"></..>
+		子:	this.$emit('自定义事件',子.数据名) 
+        父:	methods-> 父方法(接受数据){处理}
+
+        注释：以上父子通信方式也就是典型的单向数据流，父组件通过 props 传递数据，子组件不能直接修改 props， 
+        而是必须通过发送事件的方式告知父组件修改数据。
+
+        v-model语法糖双向绑定
+            注释：会带来维护上的问题。因为子组件可以修改父组件，且在父组件和子组件都没有明显的改动来源
+            例子：
+            <子 v-model="父数据"></..>
+            子：model: {
+                prop: 'value'/'自定义msg',
+                event: 'input'/'子要更新父数据的方法名可以自定义 changeMsg'
+              },
+              props: {
+                value/自定义msg: ''
+              },
+              this.$emit('changeMsg', this.msg+2)
+
+
+        this.$refs+ref名称：this.$refs['keyword']
+            访问到dom或组件实例获取子组件的数据或者方法 //不是响应式的
+
+        this.$children + 数据/方法
+            获取子方法和数据
+
+        this.$parent + 数据/方法
+            获取父方法和数据不一定访问的到
+
+        .sync:实现子组件与父组件通信
+            父： <input :value.sync="value" /> 等同于 <input :value="value" @update:value="v => value = v"></comp>
+            子： this.$emit('update:value', 1) //需要显式地触发一个更新事件
+
+    ②兄弟组件通信
+    通过查找父组件中的子组件实现：this.$parent.$children。在 $children 中可以通过组件 name 
+    查询到需要的组件实例，然后进行通信
+
+    ③跨多层组件通信 （文档不推荐）
+        父：export default {
+            provide: {
+                data: 1
+            }
+        }
+        子：export default {
+            inject: ['data'],
+            mounted() {
+              console.log(this.data) // => 1 无论跨几层都能获得父组件的 data 属性
+            }
+        }
+    ④任意组件
+    1.event bus
+        let Bus = new vue()  //创建另一个根实例
+        bus.$emit(eventName,数据)  //发布
+        bus.$on(eventName,function(){})  //监听，可以订阅/不订阅
+
+    2.vuex
+    State、 Getter、Mutation 、Action、 Module
+    state => 基本数据(数据源存放地)
+    getters => 从基本数据派生出来的数据
+    mutations => 提交更改数据的方法，同步！
+    actions => 像一个装饰器，包裹mutations，使之可以异步。
+    modules => 模块化Vuex
+    流程：
+        components - >  actions ->  mutations -> state  <- getters	<-	components
+    辅助函数：
+        ①mapActions/mapGetters  执行后， 返回来的是对象：{incremen:fn,decrement:fn,xx,xx} 
+        映射到方法里；
+        ②mapState/mapGetters //映射到计算属性里
+    使用：
+        this.$store.commit('increment',参数/负载/payload) -> mutations
+        this.$store.dispatch('increment',参数/负载/payload)  -> actions
+
+        const actions = {
+            increment:({store对象},参数)=>{}
+        }
+
+        <xx @click="请求类型(负载)"   actions: 请求类型:({},payload)=>{payload==负载}
+    注意：
+        直接分发 mutation 岂不更方便？mutation 必须同步执行，Action就不受约束！
+        我们可以在 action 内部执行异步操作
+
+v-if和v-show的区别
+            v-show="布尔" 			v-if="布尔"
+    区别:	操作css					操作dom：切换条件时会触发销毁/挂载组件
+    场景:	适合频繁切换		     适合不频繁切换
+    性能:	初始渲染消耗			频繁切换会有消耗
+    
+computed 和 watch 区别    
+    watch: 监听到数据的变化,启动处理函数
+        watch:{data里面的属性名:处理函数|对象}
+        watch:{
+            元数据:{
+                // 深度遍历 默认false
+                deep: true,
+                // 立即触发
+                immediate: true,
+                // 执行的函数
+                handler: function(val, oldVal) {}
+            }
+        }
+    
+    computed:所依赖的元数据变化时，就会再次执行。
+    并且 computed 的值有缓存，只有当计算值变化才会返回内容。
+    computed: {
+        aPlus: {
+          get: function () {
+            return this.a + 1  // this.aPlus 时触发
+          },
+          
+          set: function (v) {
+            this.a = v - 1  // this.aPlus = 1 时触发
+          }
+        }
+        ifHistory: function () { //判断有没有历史记录来控制是否展示模块 
+            return this.historyList.length === 0  //依赖别的属性来动态获得值
+        },
+      }
+
+computed 和 method
+    与method的区别:	
+        ①方法会每次调用，计算属性不会(只有在与之相关的元数据发生变化时，才调用)
+		②计算属性的性能高: 适合做筛选
+        ③方法：适合在列表渲染使用，强制渲染执行
+
+过滤器 
+    定义过滤器：
+        ①Vue.filter('number',function(data,digit=2){ //要过滤的数据，digit||2 
+            return data.toFixed(digit);
+        });
+        ②filters:{
+            number: function(data,digit=2){ //过滤器名称:函数(要过滤的元数据,参数)
+                return data.toFixed(digit);
+            },
+        }
+    
+    使用过滤器：
+        数据|过滤器名字number(..args)
+
+自定义指令
+    定义自定义指令 ：functiom = bind + update 绑定到元素+数据更新
+        ①Vue.directive('color-swatch', function (el, binding) {
+            console.log(binding.value.color) // => "white"
+            console.log(binding.value.text)  // => "hello!"
+            el.style.backgroundColor = binding.value.color
+        })
+        ②directives: {
+            focus:{
+                inserted:function (el) {   // 当被绑定的元素插入到 DOM 中时……
+                    el.focus()
+                }
+            }
+        }
+
+    使用自定义指令：
+    <div v-color-swatch="{ color: 'white', text: 'hello!' }"></div>
+    <input v-focus>
+
+组件中的data什么时候可以使用对象？
+    根组件new Vue()可以使用对象或者函数，该组件不会复用，也就不存在共享 data 的情况了。
+    原因：
+    组件复用时所有组件实例都会共享 data，如果 data 是对象的话，就会造成一个组件修改 data 以后
+    会影响到其他所有组件，所以需要将 data 写成函数，每次用到就调用一次函数获得新的数据。
+    
+extends 和 extend： 
+    extends:允许声明扩展另一个组件(可以是一个简单的选项对象或构造函数),便于扩展单文件组件。
+    var CompA = { ... }
+
+    var CompB = { // 在没有调用 `Vue.extend` 时候继承 CompA
+        extends: CompA,
+        ...
+    }
+   extend:作用是扩展组件生成一个构造器，通常会与 $mount 一起使用。
+
+mixin 和 mixins 区别
+    mixins： 全局混入影响到每个组件实例，通常插件都是这样做初始化的 
+    Vue.mixin({
+        beforeCreate() {
+            // ...逻辑
+            // 这种方式会影响到每个组件的 beforeCreate 钩子函数
+        }
+    })
+    应用：封装好的ajax或者工具函数
+
+    mixin： 
+    扩展组件的方式 抽离相同业务逻辑混入 如上拉下拉加载数据这种
+    注意： 
+        ①混入是合并数据以组件数据优先,方法也是。
+        ②混入对象的钩子将在组件自身钩子之前调用。
+     
+    var myMixin = { //定义一个混入对象
+        created: function () {
+            this.hello()
+        },
+        methods: {
+            hello: function () {
+                console.log('hello from mixin!')
+            }
+        }
+    }
+    
+    var Component = Vue.extend({ // 使用混入对象的组件
+        mixins: [myMixin]
+    })
+    var component = new Component() // => "hello from mixin!"
+
+为什么使用key?  
+    需要使用key来给每个节点做一个唯一标识，Diff算法就可以正确的识别此节点。
+    作用主要是为了高效的更新虚拟DOM
+
+params和query的区别
+    用法：
+        query要用path来引入，params要用name来引入，
+        接收参数都是类似的分别是this.$route.query.name和this.$route.params.name。
+    url地址显示：
+        query在浏览器地址栏中显示参数，后者则不显示
+
+数据检测：vue的数据是响应式，非响应式的情况如下
+    ①数组数据变化： 
+        问题:对数组使用了非变异 (non-mutating method) 方法（返回的了新数组）
+        解决： 对象合并
+        例子：
+        data:{arr:['xx','oo']}
+            问题：利用索引直接设置一个项|修改数组的长度时 ---this.arr[3]=11
+            解决：Vue.set(数组对象, key, value) | vm|this.$set(数组对象, key, value)
+    ②对象的数据变化：
+        问题：data:{a:1}
+            a 数据是响应式的
+            vm.b='qq';  b 属性不是响应式的
+        解决：Vue.set(数组对象, key, value) | vm|this.$set(数组对象, key, value)
+
+
+响应式原理：双向绑定是通过数据劫持结合发布者-订阅者模式的方式来实现的
+    Object.defineProperty()来劫持各个属性的setter，getter，在数据变动时发布消息给订阅者，
+    触发相应的监听回调。
+    ①监听器Observer 通过Object.definePropty监听到 数据的set 和 get 的事件，如有变动可拿到最新值并通知订阅者//即我们知道了数据在什么时候被读或写了
+        重点：向其植入订阅器
+    ②创建一个依赖收集容器Dep。主要负责收集订阅者，当数据变化的时候通知订阅者更新。//在数据被读或写的时候通知那些依赖该数据的视图更新了,先将所有依赖收集起来，一旦数据发生变化，就统一通知更新
+        重点：
+        ①通过target全局属性也是静态属性配置 Watcher ==》Dep.target = null
+        ②另外它的自身属性 subs 也是 Watcher 的数组。//收集订阅者的数据 this.subs.push(Dep.target);
+        注释：将订阅器Dep植入Observer：
+        ①收集添加订阅者的操作设计在getter里面，这是为了让Watcher初始化时进行触发，因此需要判断是否要添加订阅者。
+            this.subs.push(Dep.target) //添加订阅者
+        ②通知订阅者更新的操作设计在setter里面，如果数据变化，就会去通知所有订阅者，订阅者们就会去执行对应的更新的函数。
+            sub.update() //通知订阅者更新
+    ③订阅者Watcher，在初始化的时候触发Observer的get函数去执行添加订阅者操作。把自己添加到订阅器Dep里。
+    数据发生变化时获取新值调用update 方法更新 Dom
+        初始化：
+        get(){
+            Dep.target = this;  // 缓存自己：实际上就是把 Dep.target 赋值为当前的渲染 watcher
+            let value = this.vm.data[this.exp]  // 强制执行监听器Observer里的get函数，把自己添加到订阅器Dep里
+            注释：访问vm 上的数据，触发数据对象的getter。添加所有订阅者，数据变化时候通知更新
+            Dep.target = null;  // 释放自己：数据依赖收集已经完成，不再添加订阅者
+            return value;
+        }
+    ④Compiler 模板编译器，对HTML模板进行编译，提取其中的变量并转化为数据。
+    
+    总结：
+        ①先要对数据进行劫持监听，所以我们需要设置一个监听器Observer，用来监听所有属性。
+        ②如果属性发上变化了，就需要告诉订阅者Watcher看是否需要更新。
+        ③因为订阅者是有很多个，所以我们需要有一个消息订阅器Dep来专门收集这些订阅者。在初始化
+        的时候触发getter把订阅者添加到订阅器。在数据变化的时候触发setter,通知订阅者更新数据，dom也就更新了。
+        核心思路就是手动触发一次属性的 getter 来实现依赖收集。
+    <!-- 优化：
+    Observer 通过Object.definePropty进行数据劫持
+    Dep 发布订阅者，添加观察者者以及在数据发生改变的时候通知观察者
+    Watcher 观察者，对数据进行观察以及保存数据修改需要触发的回调
+    Compiler 模板编译器，对HTML模板进行编译，提取其中的变量并转化为数据。 -->
+
+
+Object.defineProperty 的缺陷
+    ①如果通过下标方式修改数组数据或者给对象新增属性并不会触发组件的重新渲染，因为 Object.defineProperty 
+    不能拦截到这些操作。
+    ②对于数组而言，大部分操作都是拦截不到的，只是 Vue 内部通过重写函数的方
+    式解决了这个问题。
+
+    解决方法：对于第一个问题，Vue 提供了一个 API 解决 set;
+    对于数组而言，Vue 内部重写了以下函数实现派发更新:  'push','pop','shift','unshift',
+    'splice','sort','reverse'
+   
+Proxy 与 Object.defineProperty对比
+    优点：
+        ①Proxy 无需一层层递归为每个属性添加代理，一次即可完成以上操作。性能上更好。
+        ②并且原本的实现有一些数据更新不能监听到。
+    缺点：
+    ①浏览器的兼容性不好了
+编译过程
+    Vue 会通过编译器将模板通过3个阶段最终编译为 render 函数，然后通过执行 render 函数生成 。
+    Virtual DOM 最终映射为真实 DOM
+    ①将模板解析为 AST： 通过各种各样的正则表达式去匹配模板中的内容，然后将内容提取出来做各种逻辑操作，生成一个最基本的 AST 对象
+    ②优化 AST： 对节点进行了静态内容提取，也就是将永远不会变动的节点提取了出来（提取静态的属性）
+    实现复用 Virtual DOM，跳过对比算法的功能。
+    ③将 AST 转换为 render 函数： 遍历整个 AST，根据不同的条件生成不同的代码
+
+
+NextTick ： 设置一个回调，用于异步执行：比如，就是把你设置的回调放在 setTimeout 中执行，
+这样就算异步了，等待当时同步代码执行完毕再执行
+
+作用：    
+    在下次 DOM 更新循环结束之后执行延迟回调，用于获得更新后的 DOM
+    同一事件循环中的代码执行完毕 -->  DOM 更新 --> nextTick 回调触发
+    数据的变化到 DOM 的重新渲染是一个异步过程，发生在下一个 tick。把这些异步任务都压成一个同步任务，
+    在下一个tick 执行完毕。
+
+JS执行是单线程的，它是基于事件循环的:
+    ①所有同步任务都在主线程上执行，形成一个执行栈 (执行所有宏任务)
+    ②主线程之外，会存在一个任务队列，只要异步任务有了结果，就在任务队列中放置一个事件。（任务队列）
+    ③当执行完所有同步代码后，执行栈为空，就会读取任务队列。那些对应的异步任务，会结束等待状态，
+    进入执行栈。（执行所有微任务： 如有必要会渲染页面）
+    ④然后开始下一轮 Event Loop，执行宏任务中的异步代码，也就是 setTimeout 中的回调函数
+
+NextTick原理：
+        ①把传入的回调函数 cb 压入 callbacks 数组，最后一次性地根据 useMacroTask 条件执行 
+        宏任务函数（macroTimerFunc ）或者是 microTimerFunc，而它们都会在下一个 tick 执行 
+        flushCallbacks，flushCallbacks 的逻辑非常简单，对 callbacks 遍历，然后执行相应的
+        回调函数。
+        例子： macroTimerFunc = () => {
+                setImmediate(flushCallbacks)
+            }
+        注释：
+        这里使用 callbacks 而不是直接在 nextTick 中执行回调函数的原因是保证在同一个 tick 
+        内多次执行 nextTick，不会开启多个异步任务，而把这些异步任务都压成一个同步任务，在下一个
+        tick 执行完毕。
+        ②
+        对于实现 macrotasks ，会先判断是否能使用 setImmediate ，不能的话降级为 MessageChannel ，
+        以上都不行的话就使用 setTimeout
+        对于 micro task 的实现，则检测浏览器是否原生支持 Promise，不支持的话直接指向宏任务。
+
+        注释：在 Vue 2.4 之前都是使用的 microtasks，但是 microtasks 的优先级过高，在某些情况下
+        可能会出现比事件冒泡更快的情况，但如果都使用 macrotasks 又可能会出现渲染的性能问题。所以在
+        新版本中，会默认使用 microtasks，但在特殊情况下会使用 macrotasks，比如 v-on 绑定的事件
+        回调函数的处理。
+
+        ③当 nextTick 不传 cb 参数的时候，提供一个 Promise 化的调用
+
+        总结：
+        由于Vue DOM更新是异步执行的，即修改数据时，视图不会立即更新，而是会监听数据变化，并缓存
+        在同一事件循环中，等同一数据循环中的所有数据变化完成之后，再统一进行视图更新。为了确保得到
+        更新后的DOM，所以设置了 Vue.nextTick()方法。
+
+    应用：数据的变化到 DOM 的重新渲染是一个异步过程，发生在下一个 tick。这就是我们平时在开发的过程中，
+    比如从服务端接口去获取数据的时候，数据做了修改，如果我们的某些方法去依赖了数据修改后的 DOM 变化，
+        getData(res).then(()=>{
+            this.xxx = res.data
+            this.$nextTick(() => {
+                ...这里我们可以获取变化后的 DOM
+            })
+        })
+
+路由原理： 前端路由实现本质是监听URL的变化，然后匹配路由规则显示相应页面，并且无须刷新
+    特点：
+    ①支持 hash、history、abstract 3 种路由方式，
+    ②提供了 <router-link> 和 <router-view> 2 种组件
+    ③还提供了简单的路由配置和一系列好用的 API。
+
+    hash模式：
+    ①点击或浏览器历史跳转时，触发onhashchange事件,然后根据路由规则匹配显示相应页面(遍历路由表，
+    装载相应组件到router-link)；
+    ②手动刷新时,不会向服务器发送请求（不会触发onhashchange）。触发onload事件，然后根据路由
+    规则匹配显示相应页面；
+    特点：
+    ①hash发生变化的url都会被浏览器记录下来，使得浏览器的前进后退都可以使用了，尽管浏览器没有请
+    求服务器，但是页面状态和url关联起来。
+    ②hash模式的特点在于hash出现在url中，但是不会被包括在HTTP请求中，对后端没有影响，不会重新加载页面。
+
+    history模式：
+    ①跳转时会调用history.pushState方法,根据to属性改变地址，并切换相应组件到router-link;
+    ②浏览器历史操作（前进，后退）,只会改变地址栏（页面内容不会变）,不会切换组件，需要使用popstate
+    方法来切换组件；
+    ③手动刷新,需要后端配合重定向，不然404
+   
+
+Virtual DOM
+用 js 对象，描述每个节点，及其父子关系，形成虚拟 DOM 对象树结构。
+
+vue3.x
+更小、更快、加强 TypeScript 支持、加强 API 设计一致性、提升自身可维护性、开放更多的底层功能。
+另外考虑到 Vue.js 3.x 用了一些 ES6 的新特性如 Proxy，在浏览器兼容性这块也是需要考虑的
+脏数据检测

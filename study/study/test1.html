@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+    var arr =[
+        {label:'1',children:[{label:'10'},{label:'11',
+        children:[{label:'10'},{label:'11',children:[{label:'10'},{label:'11'}]}]}]},
+        {label:'2'},
+        {label:'3'}
+    ]
+    function transform(list) {
+    if (Array.isArray(list) && list.length !== 0) {
+        list = list.map(v => {
+            v.label = Number(v.label) + '%'
+            if (!transform(v.children)) {
+                // v.isLeaf = true
+            }
+            return v
+        })
+        return list
+    } 
+    }
+
+console.log(transform(arr))
+</script>
+</html>

@@ -1,0 +1,28 @@
+##### js
+
+- 内置类型
+- typeof
+- 类型转换
+- 原型
+- new
+- instanceof
+- this
+- 执行上下文
+- 闭包
+- 深/浅拷贝
+- 模块化
+  - CommonJS
+  - AMD
+- 防抖
+- 节流
+- 继承
+- call, apply, bind
+- Promise
+- Generator
+- Map, FlatMap, Reduce
+- async, await
+- Proxy
+- 为什么0.1 + 0.2 != 0.3
+- V8下的垃圾回收机制
+  - 新生代算法
+  - 老生代算法

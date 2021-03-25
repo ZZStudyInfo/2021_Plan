@@ -1,0 +1,202 @@
+h5:
+	1. <!DOCTYPE html>： 告诉解析器用什么文档标准解析这个文档，出错则向后兼容,即新版本兼容老版本。
+	拓展：css3、js兼容之渐进增强和优雅降级
+	noscript 元素用来定义在脚本未被执行时的替代内容（文本）。
+	注释：  渐进增强：低版本浏览器（基本功能）—>高版本浏览器（兼容高版本追加功能）
+		   优雅降级：高版本浏览器（完整功能）—>低版本浏览器（hack使其正常浏览）
+		    .transition { /*渐进增强写法*/  适用低版本用户居多的终端
+                -webkit-transition: all .5s;  webkit —>safari/ 谷歌（Blink）
+                -moz-transition: all .5s;     gecko —> firefox
+                -ms-transition: all .5s;	trident —>  ie 4以上
+                -o-transition: all .5s;       presto —> opera
+                transition: all .5s;
+		    }
+	       .transition { /*优雅降级写法*/ 使用高版本用户居多的终端
+                transition: all .5s;
+                -o-transition: all .5s;
+                -ms-transition: all .5s;
+                -moz-transition: all .5s;
+                -webkit-transition: all .5s;
+		    }
+	——————————————————————————————
+	2.元素类型
+		①行内元素：a  span i 
+        特点： 
+            ①无法设置宽高； 
+            ②margin，padding竖直方向无效；padding特殊content范围增大，但是对周围元素无影响。
+		拓展: margin在布局中存在的问题：
+            1.若父盒子没有paading-top,border-top，第一个子元素的margin-top会作用在父元素上，即无限传递。
+            解决办法:
+                ①父元素：overflow:hidden/float: left/padding: 1px/border: 1px solid  transparent/zoom: 1;
+                ②子元素：float:left/display:inline;
+            2.重合选大的问题：父子，兄弟元素重叠。
+            解决办法:
+                ①给其中一个元素外面包裹一个父元素，父元素加上overflower: hidden（检索子元素高度）, 
+                两个元素便不属于同一个BFC，就不会发生margin重叠了
+
+
+		②块级元素()有：div ul ol li dl  h1 h2 h3 ....p
+        特点：默认宽度和父元素一样，高度根据子元素自适应， 自动换行， 能设置宽高
+        
+		③行内块元素：
+        常见： img  input meta
+        不常见：area  command embed  source  br hr link
+        特点：①带有宽高并且能设置宽高； ②带有功能性  
+	
+	3.盒模型 （范围包括margin、padding、border、margin）
+	w3c标准盒模型(content不包括其他部分)：
+		占据位置： content + padding + border + margin 
+		实际大小(width) ： content  + padding + border
+	ie盒模型（包括border、padding 即content = content + border + padding）：
+ 		占据位置： content + margin 
+		实际大小(width) ： content
+    怪异盒模型（box-sizing: border-box/content-box /padding-box ）对应ie盒模型， 
+    减去border、padding才计算内容，告诉浏览器去理解你设置的边框和内边距的值是包含在width内的
+
+	4.h5新特性
+	①语义化内容标签(header/nav/footer/aside/article/section/tbody/tfooter..)
+		优点：内容结构化，结构更清晰，便于维护阅读理解，便于浏览器，搜索引擎解析，有利于seo。
+	②新增api: 音视频(audio,video)/绘画canvas 
+	③webstorage本地离线存储
+	④表单控件： calendar、date、time、email、url、search
+	⑤新的技术： webworker/websocket/geolocation
+	⑥E8/IE7/IE6支持通过 document.createElement 方法产生的标签
+
+ 	5.ifram缺点： 
+	①阻塞主页面的onload事件；	
+	②搜索引擎的检索程序无法解读这种页面，不利于seo;
+	③iframe和主页面共享连接池，而浏览器对相同域的链接有限制，所以会影响页面	的并行加载
+	解决方法：通过js动态给iframe添加src属性值
+	
+待：和css3新特性、html语义化？meta标签、离线存储， 
+	画1px高的线 点击事件300毫秒延迟问题
+
+CSS
+ 	1.css3新特性
+		①box-shadow/text-shadow/text-overflow: ellipsis/clip/string/transform/gradient
+		/border-image/animation/rgba/fiter滤镜
+		②弹性布局flex/栅格布局grid/多列布局
+		③媒体查询
+		④增加了更多选择器
+			伪类/状态选择： nth-child()/nth-of-type()/:hover/visited/: chcked/:disabled
+		
+	2.文本溢出
+		①单行文本溢出
+            width: 100px
+            overflow: hidden
+            text-overflow: ellipsis
+            white-space: nowrap
+		②多行文本溢出
+            width: 100px
+            text-overflow: ellipsis
+			display: -webkit-box; //弹性伸缩
+			-webkit-line-clamp: 2;
+			-webkit- box-orient: vertical
+			
+	3.水平居中/垂直居中
+		水平居中：
+		①父-block：text-align: center,子元素文字居中， 子元素： dispaly: inline-block
+		②父子都为dispaly: block, 子： margin : 0 auto
+		③不定宽，子：dispaly: inline-block/inline, 父：text-align: center
+		
+	4.BFC
+		FC/BFC(块级格式化上下文)/IFC(内联格式化上下文)/GFC(网格布局格式化上下文)/FFC(自适应格式化上下文)
+	特征：
+        ①内部的Box会在垂直方向，一个接一个地放置。
+        ②Box垂直方向的距离由margin决定。属于同一个BFC的两个相邻Box的margin会发生重叠
+            //兄弟元素margin重叠取其大，防止垂直margin重叠
+        ③每个元素的margin box的左边， 与包含块border box的左边相接触(对于从左往右的格式化，否则相反)。
+        即使存在浮动也是如此。(阻止元素被浮动元素覆盖)
+        ④BFC的区域不会与浮动元素float box重叠。
+            //自适应两栏布局：左浮动并且宽高，右边bfc。overflow:  hidden并且高度
+        ⑤形成BFC的元素，不会影响外面的布局；外面的布局也不会影响BFC内部布局。
+        ⑥计算BFC的高度时，浮动元素也参与计算（父元素清除浮动： overflow: hidden）
+	触发BFC：
+		①float不为none(left/right)
+		②overflow不为visibility(hidden/auto/scroll)
+		③position：absolute/fixed
+		④dispaly:flex/inline-flex/grid/inline-grid/inline-block/inline-table/table-cell/				table-caption
+
+	5.清除浮动
+		①给父元素足够的高
+		②overflow: hidden/overflow: auto//要定义宽度
+9		④利用after伪元素：.clearfix:after:{content: ‘’, clear: both,  dispaly: bolock}
+		//IE8以上和非IE浏览器才支持, ie6添加zoom: 1
+
+	6.弹性盒子
+		flex: flex-grow(分配剩余空间) flex-shrink(收缩比率) flex-basis(伸缩基准值)
+		flex: 0 1 auto
+		flex-flow: flex-direnction: row(横)/column(竖) flex-wrap: nowrap/wrap(换行)/wrap-reverse
+	7.常见布局
+		
+	8.常见兼容问题
+		①图片间隙，img:display:block/float: left
+		②IE不识别opacity属性：opacity:value(0-1)/filter:alpha(opacity=value)(1-100)
+		③图片添加超链接时，IE浏览器有蓝色边框：img添加border:0/border：none
+		④双倍边距： 块元素 + 浮动 + margin + 贴边，块元素display: inline
+		⑤ie6不识别较小高度，默认16： font-size : 0/ overflow: hidden
+		⑥表单元素行高不一致 vertical:middle /float: left
+		⑦最小高度不兼容ie6： min-height:100px;_height:100px
+        ⑧鼠标指针bug: cursor:hand//只有ie识别 cursor:pointer
+        
+	9.响应式布局
+		@media属性
+		①断点修改html元素的font-size，然后使用rem单位的元素就会做出相应的变化
+		②font-size使用vw单位，则元素的font-size大小直接和视窗大小(断点)相关
+		③一个正方形的元素总是至少接触屏幕的两条边：width/height: 100vmin
+		vw换算：
+			(320/100) * 13vw = 42px
+			即42/3.2 = 13vw
+			42/320
+	
+	10. sass/less
+		①嵌套类名
+		②&父选择器
+		③属性嵌套 .funky {font: {family: fantasy; size30em; weight:bold;}}
+		④变量$，/ 插值语句#{} font: #{$font-size}/#{$line-height}; / 引入@import 可嵌
+		套 / @media 支持变量运算符 /  @extend 继承， 延伸 @extend .error
+		⑤定义通用变量 @mixin 混合指令 @include 样式
+		@mixin sexy-border($color, $width: 1in) {
+            border: {
+                color: $color;
+                width: $width;
+                style: dashed;
+            }
+		}
+        p { @include sexy-border(blue); }
+        
+	    ⑥@if @else @each  in @ for from through/to(不包含最后一个元素) @while
+		@function px2vw($px) {
+  			@return $px / $vwUnit * 100vw;
+        }
+        
+	sass和less异同：
+	同：
+	1、混入(Mixins)——class中的class；
+	2、参数混入——可以传递参数的class，就像函数一样；
+	3、嵌套规则——Class中嵌套class，从而减少重复的代码；
+	4、运算——CSS中用上数学；
+	5、颜色功能——可以编辑颜色；
+	6、名字空间(namespace)——分组样式，从而可以被调用；
+	7、作用域——局部修改样式；
+	8、JavaScript 赋值——在CSS中使用JavaScript表达式赋值。
+	异：
+	1.变量表达不同 less: @, sass: $
+    2.处理机制不一样 ：
+        sass:服务端处理，sass更快些。
+        less: 客户端处理， 可以运行在node或浏览器端。
+    3.环境不同： 
+        sass： ruby环境 
+        less: 基于js，需要引入less.js处理代码输出css
+	4.less没有删减css原有特性
+	5.sass功能更强大， less不支持函数，列表，对象，循环，判断等：
+	①变量和作用域 ②函数概念封装③ if/else/for/each/white/extend/import
+
+    选择sass: sass教程更完善，一些框架也在用sass, 如bootstrap推出的版本4，
+    相比less功能更多，编程能力比较强，标准库compass/bourbon， cnpm手工安装
+
+常见布局练习
+
+
+
+

@@ -1,0 +1,697 @@
+事件机制
+    事件触发
+        ①事件捕获阶段
+        ②目标阶段（目标对象处理的函数）
+        ③冒泡阶段
+        注意：如果给一个 body 中的子节点同时注册冒泡和捕获事件，事件触发会按照注册的顺序执行。
+    注册事件
+        @param {*} type 事件类型
+        @param {*} function 事件处理程序的函数
+        @param {*} useCapture 默认为false(冒泡事件) true表示在捕获阶段调用事件处理程序
+        addEventListener(type,function,useCapture）--> removeEventListener
+        注意：该函数的第三个参数可以是布尔值，也可以是对象。
+        {
+            capture：布尔值，和 useCapture 作用一样
+            once：布尔值，值为 true 表示该回调只会调用一次，调用后会移除监听
+            passive：布尔值，表示永远不会调用 preventDefault
+        }
+        总结：
+        一般来说，如果我们只希望事件只触发在目标上，这时候可以使用 stopPropagation 来阻止事件的进一步传播。
+        通常我们认为 stopPropagation 是用来阻止事件冒泡的，其实该函数也可以阻止捕获事件。
+        stopImmediatePropagation 同样也能实现阻止事件，但是还能阻止该事件目标执行别的注册事件。
+
+        兼容IE
+        @param {*} type 事件类型
+        @param {*} function 事件处理程序的函数
+        attachEvent(type,function) --> detachEvent
+       
+        注意：ie8及更早版本只支持事件冒泡，所以事件处理程序的函数在冒泡阶段调用
+        ie DOM0级事件处理程序不在所属元素的作用域内运行 DOM2级事件是全局作用域 this=window 
+        并且不按添加顺序执行 反着的
+        
+        function addEvent(el, eventType, fn){
+            if(el.addEventListener){
+                el.addEventListener(eventType, fn, false) //冒泡事件
+            } else if(el.attachEvent){
+                el.attachEvent(eventType, fn)
+            } else {
+                el['on' + eventType] = fn
+            }
+        }
+
+        事件代理/事件委托
+        利用冒泡的原理把子元素的事件委托给父元素 整个页面减少内存占用 不需要给子节点注销事件
+        ul.addEventListener('click', (e) => {
+            var e  = e || window.e
+            var target = e.target || e.srcElement
+            console.log(event.target);
+             if(target == LI){
+                alert(1);
+            }
+        })
+        优点：
+            ①节省内存
+            ②不需要给子节点注销事件
+
+跨域
+    什么是跨域
+    浏览器出于安全考虑，有同源策略。也就是说，如果协议、域名或者端口有一个不同就是跨域，Ajax 请求会失败。
+
+    为什么浏览器要使用同源策略
+    其实主要是用来防止 CSRF 攻击的。简单点说，CSRF 攻击是利用用户的登录态发起恶意请求。
+    也就是说，没有同源策略的情况下，A 网站可以被任意其他来源的 Ajax 访问到内容。
+    如果你当前 A 网站还存在登录态，那么对方就可以通过 Ajax 获得你的任何信息。
+    当然跨域并不能完全阻止 CSRF。因为请求毕竟是发出去了。
+
+    请求跨域了，那么请求到底发出去没有？
+    请求必然是发出去了，但是浏览器拦截了响应。
+
+    通过表单的方式可以发起跨域请求，为什么 Ajax 就不会？
+    因为归根结底，跨域是为了阻止用户读取到另一个域名下的内容，Ajax 可以获取响应，浏览器认为这不安全
+    ，所以拦截了响应。但是表单并不会获取新的内容，所以可以发起跨域请求。
+
+    解决跨域
+    ①JSONP 
+    原理：就是利用 script 标签没有跨域限制的漏洞。通过 script 标签指向一个需要访问的地址并提供
+    一个回调函数来接收数据当需要通讯时。
+    <script src="http://domain/api?param1=a&param2=b&callback=jsonp"></script>
+    function jsonp(url, jsonpCallback, success) {
+            let script = document.createElement('script')
+            script.src = url
+            script.async = true
+            script.type = 'text/javascript'
+            
+            window[jsonpCallback] = function(data) { // 创建全局回调函数
+                success && success(data)
+            }
+        document.body.appendChild(script)
+    }
+    jsonp('http://xxx', 'callback', function(value) {console.log(value)})
+    注意：JSONP 使用简单且兼容性不错，但是只限于 get 请求。
+
+    ②cors
+    特点：
+        ①CORS 需要浏览器和后端同时支持。IE 8 和 9 需要通过 XDomainRequest 来实现。
+        ②浏览器会自动进行 CORS 通信，实现 CORS 通信的关键是后端。只要后端实现了 CORS，就实现了跨域。
+        ③服务端设置 Access-Control-Allow-Origin 就可以开启 CORS。 该属性表示哪些域名可以访问资源，
+        如果设置通配符则表示所有网站都可以访问资源。
+    分为简单请求和复杂请求
+        触发简单请求：
+            ①使用下列方法之一：get、post、head 
+            ②Content-Type 的值仅限于下列三者之一：text/plain、multipart/form-data、
+            application/x-www-form-urlencoded
+        不符合以上条件的就是复杂请求：浏览器发起预检请求，请求方法是OPTIONS
+            ①比如请求方法是PUT或DELETE，或者Content-Type字段的类型是application/json
+            ②对于复杂请求来说，会发送两次的请求，第一次就是预检请求(preflight)，用于请求验证,
+            来知道服务端是否允许跨域请求。第二次才是用户真正需要发送的请求。
+                    
+
+        例子：
+        当前端发起了复杂请求后，你会发现就算你代码是正确的，返回结果也永远是报错的。因为预检请求也会进入回调中，
+        也会触发 next 方法，但预检请求并不包含 Authorization 字段，所以服务端会报错。
+        请求头的Authorization不见了，甚至连req.method都变成了OPTIONS
+        每次服务端捕捉到的就是这个preflight请求，然后做next，其中就包括Jwt 中间件，而因为请求
+        头中没有Authorization这个header，Jwt就返回了401，而这个过程是在passport的JWT中自动检测的，
+        自己写的JWT验证部分甚至都没有执行到！
+
+        解决：只需要在回调中过滤 option 方法即可
+        app.use(function (req, res, next) {
+            "origin": ["http://localhost:8005","http://localhost:8008"],  //允许所有前端域名
+            "credentials":true, //允许携带凭证，表示是否允许发送Cookie，如果服务器不要浏览器发送Cookie，
+                删除该字段即可。另一方面，开发者必须在AJAX请求中打开withCredentials属性。
+            "methods": "GET,HEAD,PUT,PATCH,POST,DELETE", //被允许的提交方式
+            "allowedHeaders":['Content-Type,Authorization',Origin, X-Requested-With, 
+            Accept,Access-Control-Allow-Credentials']//被允许的post方式的请求头
+
+            <!-- preflightContinue: false,
+            optionsSuccessStatus: 204 -->
+            if (req.method == "OPTIONS") {
+              res.send(200);
+            }
+            else {
+              next();
+            }
+        });
+
+        注意：CORS支持所有类型的HTTP请求。JSONP的优势在于支持老式浏览器，以及可以向不支持CORS
+        的网站请求数据。
+        如果要发送Cookie，Access-Control-Allow-Origin就不能设为星号，必须指定明确的、与请
+        求网页一致的域名。同时，Cookie依然遵循同源政策，只有用服务器域名设置的Cookie才会上传，
+        其他域名的Cookie并不会上传，且（跨源）原网页代码中的document.cookie也无法读取服务器
+        域名下的Cookie。
+
+    ③document.domain
+        该方式只能用于二级域名相同的情况下，比如 a.test.com 和 b.test.com 适用于该方式。
+        只需要给页面添加 document.domain = 'test.com' 表示二级域名都相同就可以实现跨域
+
+    ④postMessage
+        这种方式通常用于获取第三方页面数据。一个页面发送消息，另一个页面判断来源并接收消息
+        ①发送消息端
+        window.parent.postMessage('message', 'http://test.com')
+        ②接收消息端
+        var mc = new MessageChannel() //通信管道
+        mc.addEventListener('message', event => {
+            var origin = event.origin || event.originalEvent.origin
+            if (origin === 'http://test.com') {
+                console.log('验证通过')
+            }
+        })
+
+        简单来说，MessageChannel创建了一个通信的管道，这个管道有两个端口，
+        每个端口都可以通过postMessage发送数据，而一个端口只要绑定了onmessage回调方法，
+        就可以接收从另一个端口传过来的数据。
+
+        var channel = new MessageChannel();
+        var port1 = channel.port1;
+        var port2 = channel.port2;
+        port1.onmessage = function(event) {
+            console.log("port1收到来自port2的数据：" + event.data);
+        }
+        port2.onmessage = function(event) {
+            console.log("port2收到来自port1的数据：" + event.data);
+        }
+
+        port1.postMessage("发送给port2");
+        port2.postMessage("发送给port1");
+        
+浏览器存储
+    特性            cookie          localStorage     sessionStorage      indexDB
+    数据生命周期    一般由服务器生成，  除非被清理,否则     页面关闭就清理      除非被清理,否则
+                 可以设置过期时间       一直存在                            一直存在
+    数据存储大小    4K                  5M              5M                  无限
+    与服务端通信    每次都会携带在          不参与          不参与              不参与
+                  header 中，对于请求性能影响
+
+    对于cookie来说还要注意安全性:
+        ①value尽量不使用明文 加密，
+        ②不能通过JS访问Cookie，减少 XSS 攻击，
+        ③只能在协议为 HTTPS 的请求中携带
+        ④规定浏览器不能在跨域请求中携带 Cookie，减少CSRF攻击
+        属性	    作用
+        value	    如果用于保存用户登录态，应该将该值加密，不能使用明文的用户标识
+        http-only	不能通过 JS 访问 Cookie，减少 XSS 攻击
+        secure	    只能在协议为 HTTPS 的请求中携带
+        same-site	规定浏览器不能在跨域请求中携带 Cookie，减少 CSRF 攻击
+
+    Service Worker
+    Service Worker 是运行在浏览器背后的独立线程，一般可以用来实现缓存功能。传输协议必须为 HTTPS。
+    因为 Service Worker 中涉及到请求拦截，所以必须使用 HTTPS 协议来保障安全。
+    缓存3个步骤
+    ① 注册 Service Worker
+    ②监听到 install 事件以后就可以缓存需要的文件，
+    ③在下次用户访问的时候就可以通过拦截请求的方式查询是否存在缓存，有就直接读取，否则就去请求数据。
+    // index.js 
+    // 注册Service Worker
+        if (navigator.serviceWorker) {
+            navigator.serviceWorker
+                .register('sw.js')
+                .then(function(registration) {
+                    console.log('service worker 注册成功')
+                })
+                .catch(function(err) {
+                    console.log('servcie worker 注册失败')
+                })
+        }
+    // sw.js 
+    // 监听 `install` 事件，回调中缓存所需文件
+        self.addEventListener('install', e => {
+            e.waitUntil(
+                caches.open('my-cache').then(function(cache) {
+                    return cache.addAll(['./index.html', './index.js'])
+                })
+            )
+        })
+
+    // 拦截所有请求事件
+    // 如果缓存中已经有请求的数据就直接用缓存，否则去请求数据
+        self.addEventListener('fetch', e => {
+            e.respondWith(
+                caches.match(e.request).then(function(response) {
+                    if (response) {
+                        return response
+                    }
+                    console.log('fetch source')
+                })
+            )
+        })
+
+浏览器缓存机制（性能优化：显著减少网络传输所带来的损耗）
+    对于一个数据请求来说，可以分为发起网络请求、后端处理、浏览器响应三个步骤。
+    浏览器缓存可以帮助我们在第一和第三步骤中优化性能。比如说直接使用缓存而不发起请求，
+    或者发起了请求但后端存储的数据和前端一致，那么就没有必要再将数据回传回来，这样就减少了响应数据。
+
+    缓存位置
+    ①Service Worker（可自由控制缓存并且缓存是持续性的）
+    ②Memory Cache (内存中的缓存，读取高效但缓存持续性很短，关闭进程释放)
+    ③Disk Cache（硬盘中的缓存，时效和容量比前者好）
+    ④Push Cache（会话级，http/2中的内容。以上三种缓存都没有命中时，它才会被使用）
+    ⑤网络请求（无缓存情况下）
+
+    缓存策略
+    ①强缓存（就是在缓存期间不需要请求，state code 为 200。）
+    强缓存设置：设置过期时间
+            ①Expires（会受限于本地时间，若修改本地时间，会造成缓存失效。是 HTTP/1 的产物）
+                例子：Expires: Wed, 22 Oct 2018 08:41:00 GMT 
+                表示资源会在 Wed, 22 Oct 2018 08:41:00 GMT 后过期，需要再次请求
+            ②Cache-control（出现于 HTTP/1.1，优先级高于 Expires。 ）
+                例子：Cache-control: max-age=30
+                表示资源会在 30 秒后过期，需要再次请求。
+                注意：可以在请求头或者响应头中设置，并且可以组合使用多种指令
+
+                                        (资源被缓存，但立即失效，下次会发起请求验证资源是否过期)
+                                        yes ---> Cache-Control:no-cache (request header)
+                    yes-->每次重新验证吗？                          yes-->Cache-control：public (响应可以被客户端和代理服务器缓存)
+                                        no ---> 可被代理服务器缓存吗
+                                                                no -->private（响应只可以被客户端缓存）
+    有可重复使用的响应吗
+
+                    no -->Cache-Control: no-store （不缓存任何响应）
+
+    最大的缓存时间？ -->Cache-control：max-age=... --> add Etag header
+
+    比如说我们希望资源能被缓存下来，并且是客户端和代理服务器都能缓存，还能设置缓存失效时间等等。
+
+    协商缓存
+    Last-Modified（响应头）: 表示本地文件最后修改日期 
+        If-Modified-Since （请求头）会将 Last-Modified 的值发送给服务器，询问服务器在该日期后资源是否有更新，
+        有更新的话就会将新的资源发送回来，否则返回 304 状态码。
+        弊端: 
+        ①本地打开缓存文件，即使没有修改文件，但还是会造成 Last-Modified 被修改，服务端不能命中缓存导致发送相同的资源
+        ②因为 Last-Modified 只能以秒计时，如果在不可感知的时间内修改完成文件，那么服务端会认为资源还是命中了，
+        不会返回正确的资源。
+
+    Etag（响应头）:
+        ETag 类似于文件指纹，If-None-Match 会将当前 ETag 发送给服务器，询问该资源 ETag 是否变动，
+        有变动的话就将新的资源发送回来。并且 ETag 优先级比 Last-Modified 高。
+
+        ETag如何添加?
+        根据文件内容,生成一个md5的摘要，给实体加一个标签。
+
+    如果什么缓存策略都没设置，那么浏览器会怎么处理？
+        浏览器会采用一个启发式的算法，通常会取响应头中的 Date 减去 Last-Modified 值的 10% 作为缓存时间。
+
+    实际应用：
+    频繁变动的资源
+        ①首先需要使用 Cache-Control: no-cache 使浏览器每次都请求服务器
+        ②配合 ETag 或者 Last-Modified 来验证资源是否有效
+        这样的做法虽然不能节省请求数量，但是能显著减少响应数据大小。
+
+    代码文件
+        这里特指除了 HTML 外的代码文件，因为 HTML 文件一般不缓存或者缓存时间很短。
+
+        一般来说，现在都会使用工具来打包代码，那么我们就可以对文件名进行哈希处理，只有当代码修改后才
+        会生成新的文件名。基于此，我们就可以给代码文件设置缓存有效期一年 Cache-Control: max-age=31536000，
+        这样只有当 HTML 文件中引入的文件名发生了改变才会去下载最新的代码文件，否则就一直使用缓存。
+
+浏览器渲染原理
+    ①处理html标记并构建dom树
+    ②处理css标记并构建cssom树（CSS Object Model）
+    ③将html和css合并成一个渲染树
+    ④根据渲染树来布局layout（也可以叫做回流或者重排），即将所有渲染树的所有节点进行平面合成
+    ⑤各个节点绘制到屏幕上（paint）
+
+    JS操作 DOM 性能很差，但是这其中的原因是什么呢？
+        ①涉及到了渲染引擎和JS 引擎两个线程之间的通信，那么势必会带来一些性能上的损耗。
+        操作 DOM 次数一多，也就等同于一直在进行线程之间的通信。
+        ②操作 DOM 可能还会带来重绘回流的情况
+
+    插入几万个 DOM，如何实现页面不卡顿？
+        ①通过requestAnimationFrame 的方式去循环的插入 DOM
+        ②只渲染可视区域内的内容，非可见区域的那就完全不渲染了，当用户在滚动的时候就实时去替换
+        渲染的内容。
+
+    什么情况阻塞渲染？
+        ①渲染的前提是生成渲染树，所以 HTML 和 CSS 肯定会阻塞渲染。link标签会阻塞加载。
+            解决：
+            ①降低一开始需要渲染的文件大小
+            ②并且扁平层级，优化选择器
+        ②当浏览器在解析到 script 标签时，会暂停构建 DOM，完成后才会从暂停的地方重新开始
+            解决：
+            ①首屏不加载 JS 文件，将 script 标签放在 body 标签底部
+            ②添加defer（渲染完再执行）或者async（下载完（渲染没完成）就执行）属性
+
+    重绘（Repaint）和回流（Reflow）
+        以下几个动作可能会导致性能问题：
+            ①改变 window 大小
+            ②改变字体
+            ③添加或删除样式
+            ④文字改变
+            ⑤定位或者浮动
+            ⑥盒模型
+        优化：
+            ①不要一条一条改变样式，而是通过class一次性改变
+            ②CSS 选择符从右往左匹配查找，避免节点层级过多
+            ③频繁操作的话 用visibility:hidden替换display:none
+            ④前端框架 虚拟dom
+            ⑤将频繁重绘或者回流的节点设置为图层，图层能够阻止该节点的渲染行为影响别的节点。
+            比如对于 video 标签来说，浏览器会自动将该节点变为图层。
+            设置节点为图层的方式有很多，我们可以通过以下几个常用属性可以生成新图层
+                ①will-change
+                ②video、iframe 标签
+
+    DOMContentLoaded测量有没有加快渲染速度，提早这个事件：
+        ①从文件大小考虑
+        ②从 script 标签使用上来考虑
+        ③从 CSS、HTML 的代码书写上来考虑
+        ④从需要下载的内容是否需要在首屏使用上来考虑
+
+浏览器安全问题
+    ①xss攻击：将可以执行的代码注入到网页中
+        ①持久型
+            例子：评论功能
+            攻击的代码被服务端写入进数据库中，导致大量正常访问页面的用户都受到攻击
+        ②非持久型
+            例子：修改 URL 参数的方式加入攻击代码，诱导用户访问链接从而进行攻击。
+            如果页面需要从 URL 中获取某些参数作为内容的话，不经过过滤就会导致攻击代码被执行
+            谷歌浏览器就能自动帮助用户防御攻击
+        解决办法:
+            ①转义字符
+            转义输入输出的内容，对于引号、尖括号、斜杠进行转义
+            <!-- str = str.replace(/</g, '&lt;') -->
+            ②白名单过滤：显示富文本
+            const xss = require('xss') //使用了 js-xss 来实现
+    ②csp攻击：建立白名单，开发者明确告诉浏览器哪些外部资源可以加载和执行
+    解决办法：
+        ①设置 HTTP Header 中的响应标头 Content-Security-Policy
+        ②设置 meta 标签的方式 <meta http-equiv="Content-Security-Policy"  content="default-src https:">
+            ①default-src ‘self’ //只允许加载本站资源
+            ②img-src https://*   //只允许加载 HTTPS 协议图片
+            ③child-src 'none'  //允许加载任何来源框架
+    总结：内容安全策略主要涉及指定服务器来源和脚本端点。防止跨站点脚本攻击（XSS）。
+    
+    ③csrf攻击（跨站请求伪造）：利用用户的登录态发起恶意请求
+        例子：用户登陆了银行网站your-bank.com，银行服务器发来了一个 Cookie。
+        用户后来又访问了恶意网站malicious.com，上面有一个表单。
+        用户一旦被诱骗发送这个表单，银行网站就会收到带有正确 Cookie 的请求
+        除了用于 CSRF 攻击，还可以用于用户追踪
+    解决办法：
+        ①Get 请求不对数据进行修改
+
+        ②不让第三方网站访问到用户 Cookie 
+        //SameSite:Strict/Lax/none + Secure属性（Cookie 只能通过 HTTPS 协议发送）
+
+        ③阻止第三方网站请求接口
+        //对于需要防范 CSRF 的请求，我们可以通过验证 Referer 来判断该请求是否为第三方网站发起的。
+        Referer是HTTP请求Header的一部分，当浏览器向Web服务器发送请求的时候，请求头信息一般需要包含Referer。
+        该Referer会告诉服务器我是从哪个页面链接过来的，服务器基此可以获得一些信息用于处理。
+
+        ④请求时附带验证信息，比如验证码或者 Token
+        //服务器下发一个随机 Token，每次发起请求时将 Token 携带上，服务器验证 Token 是否有效
+
+    ④点击挟持
+    将要攻击的网站通过 iframe 嵌套的方式嵌入自己的网页中，并将 iframe 设置为透明，在页面中透
+    出一个按钮诱导用户点击。
+    解决办法：
+        ①HTTP 响应头X-FRAME-OPTIONS，指定iframe 的展示方式：
+            ①DENY，不允许通过 iframe 的方式展示
+            ②SAMEORIGIN，可以在相同域名下通过 iframe 的方式展示
+            ③ALLOW-FROM，表示页面可以在指定来源的 iframe 中展示
+
+        ②js防御 当通过 iframe 的方式加载页面时，攻击者的网页直接不显示所有内容了
+
+
+    ⑤中间人攻击
+    攻击方同时与服务端和客户端建立起了连接，并让对方认为连接是安全的，但是实际上整个通信过程都
+    被攻击者控制了。攻击者不仅能获得双方的通信信息，还能修改通信信息。
+    解决办法：
+    ①不要连接公共不安全wifi 
+    ②增加一个安全通道来传输信息：用https请求
+
+
+性能优化：（浏览器、Webpack、网络协议）
+        ①使用浏览器缓存
+        ②加快渲染速度：
+            从文件大小考虑
+            从 script 标签使用上来考虑
+            从 CSS、HTML 的代码书写上来考虑
+            从需要下载的内容是否需要在首屏使用上来考虑
+        ③通过 Performance 工具了解网站的性能瓶颈， Performance API 具体测量时间
+        ④性能测试工具 Run audits:性能、体验、SEO 都给出了打分，并且每一个指标都有详细的评估
+        工具还提供了一些建议便于我们提高这个指标的分数
+        ⑤减少编译器的预解析：当函数没有被执行的时候，会对函数进行一次预解析，直到代码被执行以后
+        才会被解析编译。optimize-js 
+        ⑥为了减少编译时间，我们可以采用减少代码文件的大小（JS 会首先被解析为 AST，代码越多，
+        解析时间越长，这也是我们需要压缩代码的原因之一）或者减少书写嵌套函数的方式（会造成函数的重复解析)
+        ⑦为了让 V8 优化代码，我们应该尽可能保证传入参数的类型一致。这也给我们带来了一个思考，
+        这是不是也是使用 TypeScript 能够带来的好处之一
+    
+    细节优化：
+        ①图片加载优化   //小图用base64格式，将多个图标文件整合到一张图片中，用css代替
+        ②DNS预解析   //预解析的方式来预先获得域名所对应的 IP。<link rel="dns-prefetch" href="//yuchengkai.cn">
+        ③预加载       //开启预加载：<link rel="preload" href="http://example.com">预加载
+        其实是声明式的 fetch ，强制浏览器请求资源，并且不会阻塞 onload 事件
+        ④预渲染  //<link rel="prerender" href="http://example.com"> 
+        ⑤静态资源尽量使用 CDN 加载  //注意 CDN 域名要与主站不同，否则每次请求都会带上主站的 Cookie，平白消耗流量。
+        ⑥懒加载 //只加载自定义区域（通常是可视区域，但也可以是即将进入可视区域）
+        ⑦节流 防抖
+
+
+
+    扩展：  什么情况下代码会编译为 Machine Code？
+        JS 是一门动态类型的语言，并且还有一大堆的规则。简单的加法运算代码，内部就需要考虑好几种规则，
+        比如数字相加、字符串相加、对象和字符串相加等等。这样的情况也就势必导致了内部要增加很多判断逻辑，
+        降低运行效率。
+        即如果一个函数被多次调用并且参数一直传入 number 类型，代码可以编译为 Machine Code。
+        反之就会被 DeOptimized 为 Bytecode，就有性能上的一个损耗了。
+
+网络工程相关知识
+    网络结构：         
+        ①实体层 （客户端   把电脑连接起来）
+        ②链接层
+        ③网络层（电脑有了两个地址：mac地址和网络地址）
+        ④传输层（建立通信：UDP协议--无法知道对方是否收到和TCP协议--确保数据不会遗失） 
+        ⑥应用层（http）
+
+    UDP协议:
+        ①面向无连接 //不需要连接双方三次握手再传送数据
+        ②不保证数据不丢失传输给对方，可能丢包
+        ③高效。实时性高：直播，王者荣耀
+        ④只会把想发的数据报文一股脑的丢给对端，不会对数据报文进行任何拆分和拼接操作。
+
+    TCP协议：
+    特点：
+    ①确保连接和数据不丢失：TCP面向连接（如打电话要先拨号建立连接）
+    ②无连接：每次连接只处理一个请求，处理完后就断开
+    ③无状态：没有记忆能力，如果后续处理需要前面的信息，则它必须重传
+    ④简单灵活：只需传送请求方法和路径。HTTP允许传输任意类型的数据对象。正在传输的类型由Content-Type加以标记）
+
+
+    三次握手：   SYN：建立连接 ACK:确认 FIN（结束） RTT:发送端发送数据到接收到对端数据所需的往返时间。
+    ①客户端向服务端发送连接请求报文段（SYN）  //客户端进入SYN-SENT 状态
+    ②服务端收到连接请求报文段后，同意连接（SYN），则发送确认应答（ACK） // 服务端进入SYN-RECEIVED 状态
+    ③当客户端收到连接同意的应答后，还要向服务端发送一个确认报文（ACK） //服务端和客户端都进入ESTABLISHED状态
+    
+    为什么 TCP 建立连接需要三次握手，明明两次就可以建立起连接？
+    两次握手可能会让无效的请求报文被服务器接收，并且确认连接，然后等待客户端发来数据，导致服务端
+    的资源浪费。
+    例子：假设客户端向服务端发送一个连接请求，但因为网络原因滞留了，超时重传机制再次发送一个连接请求。
+    请求送达服务端，服务端会同意连接，进入ESTABLISHED状态。假设第一次发送的请求终于到达了服务端，
+    此时服务端会认为客户端又需要建立 TCP 连接，从而应答了该请求并进入 ESTABLISHED 状态 。但是客户
+    端其实是 CLOSED 的状态，那么就会导致服务端一直等待，造成资源的浪费。
+
+    断开连接四次挥手：
+    ①若客户端认为数据发送完成，则它需要向服务端发送连接释放请求（FIN）。
+    ②服务端接受到连接释放请求后，会告诉应用层要释放TCP连接，并发送一个ACK。并且进入半关闭状态。
+        注释：TCP连接双向，即客户端已经没有数据要发送了，但是服务器若发送数据，客户端依然要接受。
+        （服务器端继续发送未发送完的数据）
+    ③没发完的数据完毕后，服务端发送一个FIN(结束)到客户端，服务端关闭客户端的连接
+    PS：通过延迟确认的技术（通常有时间限制，否则对方会误认为需要重传），可以将第二次和第三次握手合并，
+    延迟 ACK 包的发送。
+    ④客户端会等待2MSL再发送ACK(确认)报文确认，这样关闭完成 （2MSL：最大段生存期，指报文段在网络中生存的时间，超时会被抛弃）
+   
+    为什么是4次挥手呢？tcp握手的时候为何ACK(确认)和SYN(建立连接)是一起发送。
+    挥手的时候为什么是分开的时候发送呢？
+    握手：当服务端收到客户端端的SYN连接请求报文后，服务端可以直接发送连接和确认应答SYN+ACK报文。
+
+    挥手：当服务端端收到关闭连接FIN报文时，很可能并不会立即关闭 SOCKET，所以只能先回复一个确认
+    应答ACK报文，告诉客户端，"你发的断开连接结束FIN报文我收到了"。只有等到我服务端所有
+    的报文都发送完了，我才能发送结束FIN报文，因此不能一起发送。故需要四步握手。
+
+    为什么客户端最后还要等待2MSL？
+    ①保证新的连接中不会出现旧连接的请求报文
+    ②保证客户端发送的最后一个ACK报文能够到达服务器
+    服务端发送了FIN+ACK报文请求断开了，客户端还没有给我回应，应该是我发送的请求断开报文它没有收到，
+    于是服务器又会重新发送一次，而客户端就能在这个2MSL时间段内收到这个重传的报文，接着给出回应报文，
+    并且会重启2MSL计时器。
+
+    总结：
+    ①建立连接需要三次握手，断开连接需要四次握手
+    ②滑动窗口解决了数据的丢包、顺序不对和流量控制问题
+    ③拥塞窗口实现了对流量的控制，保证在全天候环境下最优的传递数据
+http
+    http由三个部分构成：
+        ①请求行： 请求行由请求方法、url、新协议版本组成
+        ②首部
+        ③实体
+    请求方法get和post区别
+        ①get请求能缓存，post不能
+        ②post请求相对安全，因为get请求参数都包含在url中（写到body里也会可以的），且会被浏览
+        器保存记录；post不会，但是在抓包情况下是一样的。
+        ③Post 支持更多的编码类型且不对数据类型限制
+        ④URL有长度限制，会影响 Get 请求，但是这个长度限制是浏览器规定的，不是 RFC 规定的
+    首部又分为请求首部和响应首部：
+        通用首部：
+            ①Cache-Control：控制缓存的行为
+            ②Connection： 浏览器想要优先使用的连接类型，比如 keep-alive
+            ③Date： 创建报文的时间
+            ④Pragma： 报文指令
+            ⑤Via： 代理服务器相关信息
+        请求首部：
+            ①Accept： 能正确接收的媒体类型
+            ②Host： 服务器域名
+            ③If-Modified-Since： 本地资源未修改返回 304（比较时间）
+            ④If-None-Match： 	本地资源未修改返回 304（比较标记）
+            ⑤If-Match： 两端资源标记比较
+            ⑥User-Agent	： 客户端信息
+            ⑦Proxy-Authorization： 向代理服务器发送验证信息
+            ⑧Referer： 表示浏览器所访问的前一个页面
+        响应首部：
+            ①ETag： 资源标识
+            ②Proxy-Authenticate： 向代理服务器发送验证信息
+            ③Server	：服务器名字
+            ④WWW-Authenticate： 获取资源需要的验证信息
+            ⑤Age：资源在代理缓存中存在的时间
+            ⑥Location： 客户端重定向到某个 URL
+    实体：
+        实体首部：
+        ①Allow： 资源的正确请求方式
+        ②Content-Type： 内容的媒体类型
+        ③Expires： 内容的过期时间
+        ④Last_modified： 内容的最后修改时间
+        ⑤Content-Range： 内容的位置范围
+    
+    状态码：
+        ①2XX    请求成功
+        例子：
+            200 OK 请求被正确处理  
+            204 No content，请求成功，但响应报文不含实体的主体部分
+        ②3XX    重定向
+        例子：
+            304 not modified，表示服务器允许访问资源，但因发生请求未满足条件的情况
+        ③4XX 客户端错误
+        例子：
+            403 forbidden，表示对请求资源的访问被服务器拒绝
+            404 not found，表示在服务器上没有找到请求的资源
+            400 bad request，请求报文存在语法错误
+
+        ④5XX 服务器错误
+        500 internal sever error，表示服务器端在执行请求时发生了错误
+
+https
+    HTTPS 还是通过了 HTTP 来传输信息，但是信息通过 TLS 协议进行了加密。
+    TLS 中使用了两种加密技术，分别为：
+    ①对称加密
+        对称加密就是两边拥有相同的秘钥，两边都知道如何将密文加密解密。
+        问题就在于如何让双方知道秘钥
+    ②非对称加密
+        有公钥私钥之分，公钥所有人都可以知道，可以将数据用公钥加密，但是将数据解密必须使用私钥解密，
+        私钥只有分发公钥的一方才知道。
+
+    简单流程如下：首先服务端将公钥公布出去，那么客户端也就知道公钥了。接下来客户端创建一个秘钥，
+    然后通过公钥加密并发送给服务端，服务端接收到密文以后通过私钥解密出正确的秘钥，这时候两端就
+    都知道秘钥是什么了。
+        
+    在 TLS 握手阶段，两端使用非对称加密的方式来通信，但是因为非对称加密损耗的性能比对称加密大，
+    所以在正式传输数据时，两端使用对称加密的方式通信。首次进行 TLS 协议传输需要两个 RTT ，
+    接下来可以通过 Session Resumption 减少到一个 RTT。以上说明的都是 TLS 1.2 协议的握手情况，
+    在 1.3 协议中，首次建立连接只需要一个 RTT，后面恢复连接不需要 RTT 了。
+
+http/2：大幅度提高了网页的性能 
+    在 HTTP/2 中，有两个非常重要的概念，分别是帧（frame）和流（stream）。
+    帧代表着最小的数据单位，每个帧会标识出该帧属于哪个流，流也就是多个帧组成的数据流。
+
+    HTTP/1对比HTTP/2：
+        ①在 HTTP/1 中，为了性能考虑，我们会引入雪碧图、将小图内联、使用多个域名等等的方式。
+        这一切都是因为浏览器限制了同一个域名下的请求数量（Chrome 下一般是限制六个连接），当页面中需要
+        请求很多资源的时候，队头阻塞（Head of line blocking）会导致在达到最大请求数量时，剩余的资源
+        需要等待其他资源请求完成后才能发起请求。   
+
+        ②在 HTTP/2 中引入了多路复用的技术，这个技术通过复用同一个 TCP 连接就可以传输所有的请求数据。
+        一个 TCP 连接中可以存在多条流，也就是可以发送多个请求，对端可以通过帧中的标识知道属于哪个请求，
+        避免队头阻塞问题，也很好的解决了浏览器限制同一个域名下的请求数量的问题。
+
+    特点：
+        ①多路复用
+        ②Header 压缩： 避免重复传输cookie
+        ③二进制传输： 文本传输数据改为二进制格式编码
+        ④服务端 Push：主动推送其他资源 （也可以在浏览器兼容情况下使用prefetch）
+
+    问题： 多路复用丢包导致整个 TCP 都要开始等待重传，也就导致了后面的所有数据都被阻塞了。
+    对于 HTTP/1 来说，可以开启多个 TCP 连接，出现这种情况反到只会影响其中一个连接，剩余的
+    TCP 连接还可以正常传输数据。
+
+
+HTTP/3（HTTP-over-QUIC）：一个基于 UDP 协议的 QUIC 协议
+QUIC 虽然基于 UDP，但是在原本的基础上新增了很多功能，比如多路复用、0-RTT、使用 TLS1.3 加密、
+流量控制、有序交付、重传等等功能。
+    ①多路复用
+    QUIC 原生就实现了这个功能，并且传输的单个数据流可以保证有序交付且不会影响其他的数据流
+    QUIC 在移动端的表现也会比 TCP 好。因为 TCP 是基于 IP 和端口去识别连接的，这种方式在多变的移动端
+    网络环境下是很脆弱的。但是 QUIC 是通过 ID 的方式去识别一个连接，不管你网络环境如何变化，只要 ID
+    不变，就能迅速重连上。
+
+    ②0-RTT
+    通过使用类似 TCP 快速打开的技术，缓存当前会话的上下文，在下次恢复会话的时候，只需要将之前的缓存
+    传递给服务端验证通过就可以进行传输了。
+
+    ③纠错机制
+
+输入 URL 到页面渲染的整个流程
+        ①DNS 查询：通过域名查询到具体的 IP
+        注释：因为IP不容易记忆，就有了域名。可以理解DNS 去查询这个别名的真正名称
+
+        操作系统查询：
+            ①在本地缓存中查询 IP
+            ②没有的话会去系统配置的 DNS 服务器中查询
+            ③还没有的话会直接去 DNS 根服务器查询，这一步查询会找出负责 com 这个一级域名的服务器
+            ④然后去该服务器查询 google 这个二级域名
+            ⑤接下来三级域名的查询其实是我们配置的，你可以给 www 这个域名配置一个 IP，然后还可以
+            给别的三级域名配置一个 IP
+        以上介绍的是 DNS 迭代查询，还有种是递归查询，区别就是前者是由客户端去做请求，后者是由
+        系统配置的 DNS 服务器做请求，得到结果后将数据返回给客户端。
+
+        ②接下来是 TCP 握手，应用层会下发数据给传输层，这里 TCP 协议会指明两端的端口号，然后下发给网络层。
+        网络层中的 IP 协议会确定 IP 地址，并且指示了数据传输中如何跳转路由器。然后包会再被封装到数据链路层
+        的数据帧结构中，最后就是物理层面的传输了。
+        ③服务端会响应一个 HTML 文件
+        ④浏览器会判断状态码是什么，如果是 200 那就继续解析，如果 400 或 500 的话就会报错，如果 300 的话会进行重定向。
+        ⑤浏览器开始解析文件，如果是 gzip 格式的话会先解压一下，然后通过文件的编码格式知道该如何去解码文件。
+        ⑥文件解码成功后会正式开始渲染流程：
+            ①解析html构建 DOM 树
+            ②解析css构建 CSSOM 树
+
+            注意：如果遇到 script 标签的话，会判断是否存在 async 或者 defer ，async是“下载完就执行”。
+            后者会渲染完再执行js。如果以上都没有，就会阻塞住渲染流程直到 JS 执行完毕。遇到文件下载
+            的会去下载文件，这里如果使用 HTTP/2 协议的话会极大的提高多图的下载效率。
+
+            ③将CSSOM 树和 DOM 树合并成一个渲染树
+            ④根据渲染树来布局layout
+            ⑤调用 GPU 绘制，合成图层，将内容显示在屏幕上了
+
+    ①dns查询获取ip地址
+    ②TCP建立连接 
+    注释：TCP 的握手情况以及 TCP 的一些特性，TCP 握手结束后就会进行 TLS 握手，然后就开始正式的传输数据
+    TLS 的握手情况以及两种加密方式
+    ③浏览器向web服务器发送http请求
+    ④浏览器渲染
+    ⑤四次挥手
+
+监控
+    ①页面埋点
+        监控数据：PV / UV、停留时长、流量来源、用户交互
+        ①手写埋点
+            自主选择需要监控的数据然后在相应的地方写入代码
+        ②无埋点
+            而是统计所有的事件并且定时上报，后期过滤出需要的数据。
+    ②性能监控
+        使用浏览器自带的 Performance API 来实现这个功能。
+        performance.getEntriesByType('navigation') 获得页面中各种详细的性能相关信息
+    ③异常监控
+        ①代码报错
+            window.onerror /catch/try catch
+            注意: 
+                ①线上运行的代码都是压缩过的，需要在打包时生成 sourceMap 文件便于 debug。
+                ②对于捕获的错误需要上传给服务器，通常可以通过 img 标签的 src 发起一个请求
+        ②接口异常上报
+            列举出出错的状态码。一旦出现此类的状态码就可以立即上报出错。
+            接口异常上报可以让开发人员迅速知道有哪些接口出现了大面积的报错，以便迅速修复问题。

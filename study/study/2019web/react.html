@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/* 
+reconciliation 和 commit 阶段 前者可打断 后者不能暂停
+  一、生命周期  子的数据更新，父不会更新 父的数据更新，子会更新
+  1.初始化阶段
+  ①getDefaultProps
+  取得默认属性(getDefaultProps) 外部传入的props
+
+  ②getInitialState
+  初始状态(getInitailState)  state状态
+
+  ③componentWillMount
+  即将挂载
+  组件即将被渲染到页面之前触发，此时可以进行开启定时器、向服务器发送请求等操作
+
+  ④render(子走一套)
+  组件渲染 描画DOM 
+
+  ⑤componentDidMount 不可暂停
+  挂载完毕
+  组件已经被渲染到页面中后触发：此时页面中有了真正的DOM的元素，可以进行DOM相关的操作
+  调用ajax,setState
+
+  2.运行阶段
+  ⑥componentWillReceiveProps()
+  UNSAFE_componentWillReceiveProps(nextProps){
+    // 注意即使属性未有任何改变，React可能也会调用该方法
+    // 确保比较当前和之后的值，这可能会发生在当父组件引起你的组件重新渲染
+    // 调用this.setState通常不会触发
+  }
+  组件接收到属性时触发
+  推荐你使用getDerivedStateFromProps生命周期而不是UNSAFE_componentWillReceiveProps。
+  该函数会在初始化和 update 时被调用
+
+	⑦shouldComponentUpdate
+  注意你不能在这调用this.setState()，若你需要更新状态响应属性的调整，使用getDerivedStateFromProps() 代替。
+  当组件接收到新属性，或者组件的状态发生改变时触发。组件首次渲染时并不会触发 性能优化点
+  shouldComponentUpdate(newProps, newState) {
+    //该钩子函数可以接收到两个参数，新的属性和状态，返回true/false来控制组件是否需要更新。
+    if (newProps.number < 5) return true;
+    return false
+  }
+  
+  父的数据更新，所有子组件重新渲染执行render(),形成新的虚拟DOM，
+  再用diff算法对新旧虚拟DOM进行结构和属性的比较，决定组件是否需要重新渲染,
+  所以我们开发者可以根据项目的业务逻辑，在shouldComponentUpdate()中加入条件判断，
+  可以浅比较当前 state 和之前的 state 是否相同，也可以是判断某个值更新了才触发组件更新，从而优化性能
+  immutable库，PureComponent 底层实现了浅比较
+
+  ⑧componentWillUpdate
+  组件即将被更新时触发
+  getSnapshotBeforeUpdate 用于替换 componentWillUpdate ，
+  该函数会在 update 后 DOM 更新前被调用，用于读取最新的 DOM 数据。
+
+  ⑨render
+  组件渲染 描画DOM
+
+  ⑩componentDidUpdate 不可暂停
+  描画结束 
+  组件被更新完成后触发。页面中产生了新的DOM的元素，可以进行DOM操作
+
+	11.componentWillUnmount 不可暂停
+  组件被销毁时触发。这里我们可以进行一些清理操作，例如清理定时器，取消Redux的订阅事件等等
+
+  二、单向绑定模拟双向绑定和setState
+  ①单向绑定模拟双向绑定
+  react 默认是单项绑定  defaultValue 
+
+	value={this.state.数据名}  model->view
+	onChange={this.监听方法}   view->model(  setState )
+
+	监听方法: this.setState(...)
+  ②setState
+  setState为异步API,setState 可能会导致 DOM 的重绘，如果调用一次就马上去进行重绘，那么调用多次就会造成不必要的性能损失。
+  设计成异步的话，就可以将多次调用放入一个队列中，在恰当的时候统一进行更新过程。
+  handle() {
+  // 初始化 `count` 为 0
+  console.log(this.state.count) // -> 0
+  this.setState({ count: this.state.count + 1 })
+  this.setState({ count: this.state.count + 1 })
+  this.setState({ count: this.state.count + 1 })
+  console.log(this.state.count) // -> 0
+  }
+虽然调用了三次 setState ，但是 count 的值还是为 1。
+因为多次调用会合并为一次，只有当更新结束后 state 才会改变，三次调用等同于如下代码
+Object.assign(  
+  {},
+  { count: this.state.count + 1 },
+  { count: this.state.count + 1 },
+  { count: this.state.count + 1 },
+)
+当然你也可以通过以下方式来实现调用三次 setState 使得 count 为 3
+
+handle() {
+  this.setState((prevState) => ({ count: prevState.count + 1 }))
+  this.setState((prevState) => ({ count: prevState.count + 1 }))
+  this.setState((prevState) => ({ count: prevState.count + 1 }))
+  }
+  如果你想在每次调用 setState 后获得正确的 state ，可以通过如下代码实现
+
+handle() {
+  function setStateAsync(nextState){
+    return new Promise(resolve => {
+      this.setState(nextState, resolve);
+    });
+  }
+  async func() {
+    ...
+    await this.setStateAsync({count: this.state.count + 1});
+    await this.setStateAsync({count: this.state.count + 1});
+  }
+  //  函数接收前一个状态值作为第 1 个参数， 并将更新后的值作为第 2个参数
+    this.setState((prevState,props) => ({ count: prevState.count + 1 }), () => {
+        console.log(this.state)
+    })
+}
+  三、组件通信
+  ①父--子
+  props传递<Child 属性=数据/>
+  ②子--父
+  子组件不能直接修改 props， 而是必须通过调用父组件函数的方式告知父组件修改数据。
+  通过事件进行传值，如果想得到event，可以在参数最后加一个event
+   props 传递 <Child 属性=父方法/>
+	{this.props.属性.bind(this,xx)}
+  ③平级传值
+  子--父 --- 子
+  ④跨多层次组件通信
+  如果你使用 16.3 以上版本的话，对于这种情况可以使用 Context API
+  const StateContext = React.createContext()
+  class Parent extends React.Component {
+    render () {
+      return (
+        // value 就是传入 Context 中的值
+        <StateContext.Provider value='yck'>
+          <Child />
+        </StateContext.Provider>
+      )
+    }
+  }
+  class Child extends React.Component {
+    render () {
+      return (
+        <ThemeContext.Consumer>
+          // 取出值
+          {context => (
+            name is { context }
+          )}
+        </ThemeContext.Consumer>
+      );
+    }
+  }
+  ④任意组件
+   Redux 或者 Event Bus 
+  
+四、dva = React-Router + Redux + Redux-saga
+      connect     dispatch
+state ----> view    --->    action  --- > state
+
+①connect 绑定 State 到 View
+import { connect } from 'dva';
+
+function mapStateToProps(state) {
+  return { todos: state.todos };//建立 State 到 Props 的映射关系
+}
+connect(mapStateToProps)(App);//生成原始 UI 组件的容器，即在外面包了一层 State
+②Action用来描述 UI 层事件的一个对象
+  {
+    type: 'click-submit-button',
+    payload: this.form.data
+  }
+③dispatch用来将 Action 发送给 State
+dispatch({
+  type: 'click-submit-button',
+  payload: this.form.data
+})
+dispatch 方法从哪里来？被 connect 的 Component 会自动在 props 中拥有 dispatch 方法。
+
+// 创建应用
+const app = dva();
+
+// 注册 Model
+dva 提供 app.model 这个对象，所有的应用逻辑都定义在它上面。
+app.model({
+  namespace: 'count', // 当前 Model 的名称。整个应用的 State，由多个小的 Model 的 State 以 namespace 为 key 合成
+  state: 0,  //该 Model 当前的状态。数据保存在这里，直接决定了视图层的输出
+  reducers: {  //Action 处理器，处理同步动作，用来算出最新的 State
+    add(state) { return state + 1 },
+  },
+  effects: {  //Action 处理器，处理异步动作
+    *addAfter1Second(action, { call, put }) {
+      //call执行异步函数
+      yield call(delay, 1000);
+      //put发出一个 Action，类似于 dispatch
+#
+      yield put({ type: 'add' });
+    },
+  },
+});
+
+// 注册视图
+app.router(() => <ConnectedApp />);
+
+// 启动应用
+app.start('#root');
+
+ 五、props和state的区别
+  props是默认属性 外部传入的prps只读
+  state是状态
+
+ 六、react的事件绑定和原生的有什么区别(事件机制)
+ 七、HOC 是什么？相比 mixins 有什么优点？
+ 我们实现一个函数，传入一个组件，然后在函数内部再实现一个函数去扩展传入的组件，最后返回一个新的组件，这就是高阶组件的概念
+ ①隐含了一些依赖，比如我在组件中写了某个 state 并且在 mixin 中使用了，就这存在了一个依赖关系。万一下次别人要移除它，就得去 mixin 中查找依赖
+ ②多个 mixin 中可能存在相同命名的函数，同时代码组件中也不能出现相同命名的函数，否则就是重写了，其实我一直觉得命名真的是一件麻烦事。
+ ③雪球效应，虽然我一个组件还是使用着同一个 mixin，但是一个 mixin 会被多个组件使用，可能会存在需求使得 mixin 修改原本的函数或者新增更多的函数，这样可能就会产生一个维护成本
+ ④HOC 解决了这些问题，并且它们达成的效果也是一致的，同时也更加的政治正确（毕竟更加函数式了）。
+
+
+组件传值:
+	a) props
+	b) pub/sub模式 消息通知(观察者模式)  npm install npm install pubsub-js -D
+		订阅:	token=pubsub.subscribe('消息名',回调函数('消息名',数据))
+		发布：  pubsub.publish('消息名',数据)
+		清除指定订阅：pubsub.unsubscribe(onUserAdd);
+		清除所有：pubsub.clearAllSubscriptions()
+
+		注意：订阅方不存在了，相关的订阅注意清除
+
+	c) 状态管理(redux)
+
+状态管理  flux(思想)
+
+	 vue实现(vuex) react实现(react-redux)
+
+状态管理(redux)：
+	可以同一个地方查询状态，改变状态，传播状态
+	何时用：中大项目,组件状态需要共享，在任何地方都可以拿到，组件需要改变全			局状态，一个组件需要改变另外一个组件的状态
+思维：
+	在顶层组件创建store(状态),其他底层组件共享这个store(状态)
+数据流动：
+	component->action->reducer->state->component
+	component: 展示结果(含处理结果代码)
+	action: 动作转发,异步请求， store.dispatch发送action 给 reducer
+	reducer: 业务处理逻辑,返回(return)新state
+	state:	状态收集，更新内部state状态，更新订阅(store.subscribe)state的组件（component）
+
+	通过store.dispatch发送action 给 reducer
+	在组件内部 通过 store.getState() 抓state状态  特点 只抓一次
+			   store.subscribe() 订阅  数据更新，会触发
+			   getState放在subscribe内部
+操作流程：
+	1. {createStore} from 'redux'
+	2. 生成默认state defaultState={}
+	3. 创建reducer 
+		const reducer = (state=defaultState,action)=>{
+			let {type,payload}=action
+			swtich type
+				case XXXXX
+				更新copy后的state  Object.assign(空,老,新)
+			default:
+				return state
+		}
+	4. 创建store对象
+		store = createStore(reducer,defaultState)
+
+	5. store传递给组件
+		<组件名 store={store}/>
+
+	6. 更新，状态获取
+		组件内部:	this.props.store== store
+			this.props.store.dispatch({type:xxx,payload:ooo}) 发送action给reducer
+			this.props.store.subscribe(回调)  订阅 state  更新state时触发
+			this.props.store.getState() 获取状态，执行一次
+
+
+react-redux
+	基于redux思想,专门为react而生
+
+思想:  容器组件, UI组件
+	App: 拿到store,修改、获取store
+	store:外面
+index.js:
+	import {Provider,connect} from react-redux
+
+	<Provider store={store}>
+		<容器组件/>
+	</Provider>
+
+
+①React-Redux
+  使用connect方法生成容器组件 ---》定义这个组件的 Reducer--》生成store对象，并使用Provider在根组件外面包一层
+  const store = createStore(
+    todoApp,
+    persistedState
+  );
+  React-Redux 将所有组件分成两大类:UI组件和容器组件
+  1.UI组件:只负责UI呈现，不带任何业务逻辑,没有状态(state),所有数据由参数提供（props）,不使用任何redux的API
+  2.容器组件: 负责管理数据和业务逻辑,带有内部状态,使用 Redux 的 API
+  React-Redux 规定，所有的 UI 组件都由用户提供，容器组件则是由 React-Redux 自动生成。
+  也就是说，用户负责视觉层，状态管理则是全部交给它。
+
+  import { connect } from 'react-redux'
+  // connect()用于从UI组件生成容器组件
+  // TodoList--UI组件  store--容器组件
+
+  const store = connect(
+      mapStateToProps,//输入 将state映射到ui组件的props 函数返回值为一个对象
+      mapDispatchToProps//输出 用户对ui组件的操作映射成action
+  )(TodoList);
+
+  需要让容器组件拿到state对象，才能生成 UI 组件的参数
+  React-Redux 提供Provider组件，可以让容器组件拿到state
+  render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
+  document.getElementById('root')
+  )
+
+  1）mapStateToProps
+  const mapStateToProps = (state, ownProps) => {
+    return {
+      active: ownProps.filter === state.visibilityFilter,
+      todos: getVisibleTodos(state.todos, state.visibilityFilter)
+    }
+  }
+  const getVisibleTodos = (todos, filter) => {
+    switch (filter) {
+      case 'SHOW_ALL':
+        return todos
+      ...
+      default:
+        throw new Error('Unknown filter: ' + filter)
+    }
+  }
+  2）mapDispatchToProps
+  定义了哪些用户的操作应该当作 Action，传给 Store。它可以是一个函数，也可以是一个对象。
+  const mapDispatchToProps = (
+    dispatch,
+    ownProps
+  ) => {
+    return {
+      onClick: () => {
+        dispatch({
+          type: 'SET_VISIBILITY_FILTER',
+          filter: ownProps.filter
+        });
+      }
+    };
+  }
+  const mapDispatchToProps = {
+    onClick: (filter) => {
+      type: 'SET_VISIBILITY_FILTER',
+      filter: filter
+    };
+  }
+
+  ②Redux
+  import { createStore } from 'redux';
+// 获取state和store
+  const store = createStore(fn);
+  const state = store.getState();
+// 发送action
+  store.dispatch({
+    type: 'ADD_TODO',
+    payload: 'Learn Redux'
+  });
+// reducer返回一个新的state
+const reducer = (state = defaultState, action) => {
+  switch (action.type) {
+    case 'ADD':
+      return state + action.payload;
+    default: 
+      return state;
+  }
+};
+// 生成新的store
+const store = createStore(reducer);
+即store.dispatch发送过来一个新的 Action，就会自动调用 Reducer，得到新的 State。
+// 监听state变化
+store.subscribe(listener)返回一个函数 即unsubscribe()，调用解除监听
+// Store提供3个方法，createStore接收两个参数
+let { subscribe, dispatch, getState } = createStore(reducer,initState,  applyMiddleware(thunk, promise, logger));
+// 但是，一个关键问题没有解决：异步操作怎么办？
+Action 发出以后，Reducer 立即算出 State，这叫做同步；
+Action 发出以后，过一段时间再执行 Reducer，这就是异步。
+怎么才能 Reducer 在异步操作结束后自动执行呢？新的工具：中间件（middleware）
+（1）Reducer：纯函数，只承担计算 State 的功能，不合适承担其他功能，也承担不了，因为理论上，纯函数不能进行读写操作。
+
+（2）View：与 State 一一对应，可以看作 State 的视觉层，也不合适承担其他功能。
+
+（3）Action：存放数据的对象，即消息的载体，只能被别人操作，自己不能进行任何操作。
+只有发送 Action 的这个步骤，即store.dispatch()方法，可以添加功能。
+举例来说，要添加日志功能，把 Action 和 State 打印出来，可以对store.dispatch进行如下改造。
+let next = store.dispatch;
+store.dispatch = function dispatchAndLog(action) {
+  console.log('dispatching', action);
+  next(action);
+  console.log('next state', store.getState());
+}
+对store.dispatch进行了重定义，在发送 Action 前后添加了打印功能。这就是中间件的雏形。
+中间件就是一个函数，对store.dispatch方法进行了改造，在发出 Action 和执行 Reducer 这两步之间，添加了其他功能。
+const store = createStore(
+  reducer,
+  initial_state,
+  applyMiddleware(logger)//Redux 的原生方法
+);
+异步：
+import thunk from 'redux-thunk';
+import promiseMiddleware from 'redux-promise';
+
+*/
+</script>
+</html>

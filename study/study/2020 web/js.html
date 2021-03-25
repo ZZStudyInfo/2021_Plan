@@ -1,0 +1,1743 @@
+并发和并行
+并发是宏观概念，我分别有任务 A 和任务 B，在一段时间内通过任务间的切换完成了这两个任务。
+
+并行是微观概念，假设 CPU 中存在两个核心，那么我就可以同时完成任务 A、B。同时完成多个任务的情况。
+
+
+js单线程的好处
+    ①JS 引擎线程和渲染线程是互斥的。 JS 运行的时候可能会阻止 UI 渲染。原因是因为 JS 可以修改 DOM，
+    如果在 JS 执行的时候 UI 线程还在工作，就可能导致不能安全的渲染 UI。
+    ②节省内存，节约上下文切换时间，没有锁的问题。
+    锁：形象的来说就是当我读取一个数字 15 的时候，同时有两个操作对数字进行了加减，这时候结果就出现了错误。
+    解决这个问题也不难，只需要在读取的时候加锁，直到读取完毕之前都不能进行写入操作。
+
+    扩展进程和线程：都是描述CPU 工作时间片
+    进程
+        描述了 CPU 在运行指令及加载和保存上下文所需的时间，放在应用上来说就代表了一个程序。
+    线程
+        线程是进程中的更小单位，描述了执行一段指令所需的时间。
+    例子：
+        把这些概念拿到浏览器中来说，当你打开一个 Tab 页时，其实就是创建了一个进程，一个进程中可以有多个线程，
+        比如渲染线程、JS 引擎线程、HTTP 请求线程等等。当你发起一个请求时，其实就是创建了一个线程，当请求结束后，
+        该线程可能就会被销毁。
+
+eventloop
+执行栈：
+    一个存储函数调用的栈结构，遵循先进后出的原则。执行 JS 代码的时候其实就是往执行栈中放入函数。
+异步代码执行顺序：
+    遇到异步的代码时，会被挂起并在需要执行的时候加入到 Task（有多种 Task） 队列中。
+    一旦执行栈为空，Event Loop 就会从 Task 队列中拿出需要执行的代码并放入执行栈中执行
+    所以本质上来说 JS 中的异步还是同步行为
+
+eventloop是什么？
+    Event Loop即事件循环，是指浏览器或Node的一种解决javaScript单线程运行时不会阻塞的一种机制，
+    也就是我们经常使用异步的原理。
+
+浏览器中的eventloop
+    ①首先执行同步代码，这属于宏任务
+    ②当执行完所有同步代码后，执行栈为空，查询是否有异步代码需要执行
+    ③执行所有微任务
+    ④当执行完所有微任务后，如有必要会渲染页面
+    ⑤然后开始下一轮 Event Loop，执行宏任务中的异步代码，也就是 setTimeout 中的回调函数
+
+    微任务包括： process.nextTick(Node独有) ，promise ，MutationObserver(监听dom结构变化api) 。
+    宏任务包括： script ， setTimeout ，setInterval ，setImmediate ，I/O ，UI rendering。
+
+    注释：微任务快于宏任务，其实是错误的。因为宏任务中包括了 script ，浏览器会先执行一个宏任务，
+    接下来有异步代码的话才会先执行微任务
+    <!-- 宏任务耗费的时间是大于微任务，所以优先执行微任务 -->
+
+    总结：只要主线程空了，就会去读取"任务队列"，这就是JavaScript的运行机制。这个过程会不断重复。
+
+
+node中的eventloop
+    Node 的 Event Loop 分为 6 个阶段，基于libuv实现，它们会按照顺序反复运行。每当进入某一个阶段的时候，
+    都会从对应的回调队列中取出函数去执行。当队列为空或者执行的回调函数数量到达系统设定的阈值，就会进入下一阶段。
+
+    ①timers: 执行setTimeout和setInterval中到期的callback，由poll控制。
+    ②I/O: 上一轮循环中少数的I/O回调 callback会放在这一阶段执行。
+    ③idle, prepare: 仅在内部使用。
+    ④poll: 最重要的阶段。
+        ①执行I/O回调即pending callback
+        ②poll队列为空&设定了timer,若timer超时则回到 timer 阶段执行回调
+        ③poll队列为空&有setImmediate，poll 阶段会停止并且进入到 check 阶段执行回调
+        ④poll队列为空&没有setImmediate，会等待回调被加入到队列中并立即执行回调，即阻塞（有超时设置）
+
+    ⑤check: 执行setImmediate
+    setImmediate()是将事件插入到事件队列尾部，主线程和事件队列的函数执行完成之后立即执行setImmediate
+    指定的回调函数的callback。
+    ⑥close callbacks: 执行close事件的callback，例如socket.on('close'[,fn])或者http.server.on('close, fn)。
+    
+    注意：Process.nextTick()不是事件循环中的一部分
+    当每个阶段完成后，如果存在 nextTick 队列，就会清空队列中的所有回调函数，并且优先于其他 microtask 执行。
+
+定时器
+    setTimeout：延迟器，延迟多久执行一次，由于JS 是单线程执行的，如果前面的代码影响了性能，
+    就会导致 setTimeout 不会按期执行
+
+    setInterval：定时器，每隔一段时间执行一次。
+        ①不能保证在预期的时间执行任务
+        ②它存在执行累积的问题
+
+    requestAnimationFrame ： 适用于循环定时器。
+    ①自带函数节流功能（16.6毫秒内只执行一次（不掉帧的情况下）
+    ②没有其他定时器时间不准的问题，也可以通过该函数来实现 setTimeout。
+
+    扩展：setTimeout(fn, 0)可以使用, 然而按照HTML规范, 嵌套深度超过5级的定时器, 会被限制在4ms , 
+    他没有为setImmediate的天然及时性提供合适的polyfill。
+
+异步
+    什么是异步
+    同步是程序从上往下执行会有阻塞，异步是遇到阻塞先不管继续往下执行。
+    即，发起一个网络请求，就先不管这边了，先干其他事儿，网络请求啥时候返回结果，到时候再说。这样就能
+    保证一个网页的流程运行。
+
+    实现异步的最核心原理，就是将callback作为参数传递给异步执行函数并且不会立即执行，当有结果返回之
+    后再触发callback执行。
+
+    常用的异步操作：
+    ①网络请求 ajax.http.get
+    ②IO操作 如readFile readdir
+    ③定时函数 如setTimeout,setInterval
+
+
+回调函数(callback)、promise、async/await、generate、定时器
+回调函数：
+    缺点：
+    ①不利于阅读和维护 
+    ②嵌套函数存在耦合，一旦有所改动，就会牵一发动全身； 
+    ③嵌套函数多，难以处理错误 
+    ④不能使用 try catch捕获错误，不能直接return
+
+promise:
+    特点：
+    ①状态不受其他操作影响（除了异步操作的结果）。3个状态： pedding/fulfilled/rejected
+    ②状态一旦改变就不会再变（凝固）。pedding--fulfilled/rejected
+
+    优点：
+    ①Promise 实现了链式调用， then返回一个全新的Promise，原因是状态不可变
+    ②解决了地狱回调
+
+    缺点：
+    ①一旦建立promise，无法取消
+	②错误需要通过回调函数catch来捕获, promise内部错误不会影响外部代码，吃掉错误
+	③当处于pedding状态，无法得知进展到哪个阶段，刚刚开始或即将完成
+    ④Promise 虽然改变了 JS 工程师对于异步操作的写法，但是却改变不了 JS 单线程、异步的执行模式
+    注意：若事件不断反复发生， 使用stream模式比部署promise好
+
+    使用：
+        const promise = new Promise(function(resolve, reject){
+            …some code
+            if(异步操作成功){
+                resolve(res)
+                console.log(res) 
+
+                最好 return resolve(res)
+                cosole.log(res) //后面语句不会执行
+            } else {
+                reject(res)
+            }
+        })
+		
+    注释： 
+    ①Promise构造函数接收一个函数作为参数，该函数的两个参数分别是resolve和rejected,都是函数(js引擎提供)
+    ②resolve/reject不会终止Pomise参数函数的执行并且console.log(res)会首先打印出来，
+    因为resolve在本轮时间循环的末尾执行，总是晚于本轮循环的同步任务
+    ③调用resolve/reject之后Promise的使命就完成了，后续操作应该放then方法，所以加上return语句
+		
+    方法：
+    Promise.prototype.then()
+    promise.then(function(value){ }, function(error){ })
+    注：①作用是为Promise实例添加状态改变时的回调函数
+        ②then方法返回的是一个新的Promise实例，链式调用
+        注：第一个回调函数return返回的结果作为参数，传入第二个回调函数
+    
+    Promise.prototype.catch()
+    p.then(val => console.log(‘fulfilled’, val))
+        .catch(err =>  console.log(‘rejected’, err))
+        const p = new Promise(function(resolve, reject){
+        reject(new Error(err)) // reject等同抛出错误
+        // try{ throw new Error(‘test’) } catch { e => reject(e)}
+    })
+
+    ①异步结果为rejected，就会调用catch方法指定回调函数处理错误
+    ②catch返回Promise对象， 也会继续执行后面的then的方法
+
+    Promise.prototype.finally()
+    ①不依赖Promise执行结果和状态，都会执行finally方法指定的回调函数
+    promise
+    .then(result => {···})
+    .catch(error => {···})
+    .finally(() => {···});
+
+    Promise.resolve()
+    ①把现有对象转为Promise对象
+    ②方法在本轮循环结束时执行，而不是在下一轮事件循环开始时执行
+    缺点：resolve(f())---若f是同步函数，它会在本轮事件循环的末尾执行
+    Promise.resolve(‘foo’) === new Promise( resolve => resolve(‘foo’))
+    Promise.resolve().then (res => …)
+
+    Promise.rejected()
+    ①参数作为reject的理由，变成后续方法的参数
+
+    Promise.try()
+    使用场景：不知道或者不想区分函数是同步还是异步，但是想用Promise处理它，就可以用then方法指
+    定下一步流程，用catch方法处理函数抛出的错误
+    const f = () => console.log(‘now’)
+    (async () =>  fn())().then().catch() //then指定下一步，catch捕获错误
+    注意： 一个函数加上async,就会返回Promise对象，同then,就是把函数返回值使用Promise.resolve()包裹了下
+    (() => new Promise(resolve => resolve(f()) ))()
+    Promise.try(() => f())
+
+
+    Promise.all()
+    const p = Promise.all([p1,p2, p3])
+    then(result => console.log(result)) //返回[]
+    ①接受一个数组作为参数，并且都是Promise实例， 或参数具有Iterator接口
+    ②p 123都fulfilled才成功， 一个rejected就会导致p抛错
+    ③先调用参数实例的catch，没有才调用Promise.all()的catch方法
+
+    Promise.race()
+    同all()，不同的是只要有一个参数实例状态率先改变，该实例的返回值就传给p的回调函数
+
+    Promise.allSettled()
+    const p = Promise.allSettled([p1,p2, p3])
+    p.then(res => console.log(res) // [{status, value/reson}])
+    const res = await Promise.allSettled([p1,p2, p3])
+    ①Promise.all()无法确定所有请求都结束了， Promise.allSettled()可以
+
+    Promise.any()
+    同Promise.race()， 不同的是不会因为Promise变成rejected状态而结束
+
+async/await --异步终极解决方案
+    async函数就是将 Generator 函数的星号（*）替换成async，将yield替换成await
+    不同的是async有：
+    ①内置执行器。和普通函数执行一样fn()，Generator要靠next方法
+    ②语义更清楚。async/await相比较星号/yield。async表示函数里有异步操作，await需要等待结果。
+    ③返回值是promise。 async函数的返回值是Promise对象比Generator函数的返回值是Iterator对象方便多了。
+    你可以用then方法指定下一步的操作。
+    ④更广的适用性。co模块约定，yield命令后面只能是 Thunk 函数或 Promise 对象，
+    而async函数的await命令后面，可以是 Promise 对象和原始类型的值
+    （数值、字符串和布尔值，但这时会自动转成立即 resolved 的 Promise 对象）。
+
+    优点: 
+    ①比起promise写一堆then，能更加清晰明确的写出代码
+    ②也能解决地狱回调
+    缺点:
+    ①await把异步代码改成了同步代码,如果异步代码没有依赖性却使用了await就降低了性能
+
+    总结:
+    async:  一个函数加上async,就会返回Promise对象，同then,就是把函数返回值使用Promise.
+    resolve()包裹了下
+    await: generator 加上 Promise 的语法糖，且内部实现了自动执行 generator
+    使用：
+    function sleep(interval) {
+        return new Promise(resolve => {
+          setTimeout(resolve, interval);
+        })
+      } 
+      // 用法
+      async function one2FiveInAsync() {
+        for(let i = 1; i <= 5; i++) {
+          console.log(i);
+          <!-- async函数返回的是 Promise 对象，可以作为await命令的参数 -->
+          await sleep(2000);
+        }
+      }
+      one2FiveInAsync(); //1 2 3 4 5
+
+Generator
+    Generator 函数就是遍历器生成函数
+    使用:function* helloWorldGenerator() {
+            yield 'hello';
+            yield 'world';
+            return 'ending';
+        }
+        var hw = helloWorldGenerator();
+        hw.next() // { value: 'hello', done: false }
+        hw.next() // { value: 'world', done: false }
+        hw.next()// { value: 'ending', done: true }
+        hw.next()// { value: undefined, done: true }
+
+解决异步的四种办法：
+①callback方式
+    fs.readFile('some1.json', (err, data) => {
+        fs.readFile('some2.json', (err, data) => {
+            fs.readFile('some3.json', (err, data) => {
+            
+            })
+        })
+    })
+
+②Promise方式
+    readFilePromise('some1.json').then(data => {
+        return readFilePromise('some2.json')
+    }).then(data => {
+        return readFilePromise('some3.json')
+    })
+
+③async-await方式
+    const readFileAsync = async function () {
+        const f1 = await readFilePromise('data1.json')
+        const f2 = await readFilePromise('data2.json')
+        const f3 = await readFilePromise('data3.json')
+    }
+
+④Generator方式
+    co(function* () {
+        const r1 = yield readFilePromise('some1.json')
+        const r2 = yield readFilePromise('some2.json')
+        const r3 = yield readFilePromise('some3.json')
+    })
+
+Iterator
+    原生具备 Iterator 接口的数据结构：Array、Map、Set、字符串、类数组
+    注意：对象没有Iterator原生接口，for...of循环会报错，for...in循环可以遍历键名，可以部署。
+
+    var someString = "hi";
+    typeof someString[Symbol.iterator]
+    // "function"
+    var iterator = someString[Symbol.iterator]();
+    iterator.next()  // { value: "h", done: false }
+    iterator.next()  // { value: "i", done: false }
+    iterator.next()  // { value: undefined, done: true }
+
+    调用 Iterator 接口的场合：
+        ①解构赋值
+        ②扩展运算符 ...
+        ③for...of/Array.from()/Promise.all()/Promise.race()
+        ④yield*[]
+
+
+    iterator方法的实现
+        let obj = {
+            [Symbol.iterator]: function* () {
+                yield 1;
+                yield 2;
+                yield 3;
+            }
+        }
+        [...obj] // [1, 2, 3]
+
+for...of和for...in 
+        ①for...of遍历值， for...in遍历键名
+        ②for...of适用于遍历数组， for...in适用于对象
+        for..in缺点：
+            ①除了遍历键名，还会遍历原型链上的键，甚至手动添加其他键
+            ②遍历没有顺序
+            ③数组的键名是数字，for...in是以字符串作为键名遍历的
+        for...of优点：
+            ①没有for...in那些缺点。
+            ②不同于forEach方法，它可以与break、continue和return配合使用
+
+        注意：会遍历可迭代的对象，调用对象上的Symbol.iterator方法。
+
+原型和原型链
+    注意：
+    ①一切（引用类型）都是对象，对象是属性的集合
+    ②对象是函数创建的，而函数却又是一种对象
+    原型：原型的 constructor 属性指向构造函数，构造函数又通过 prototype 属性指回原型，
+    原型链：其实原型链就是多个对象通过 __proto__ 的方式连接了起来。或者说对象的 __proto__ 属性指向原型，
+     __proto__ 将对象和原型连接起来组成了原型链。
+
+    let obj = {name: 'zz'}
+    为什么 obj 可以访问到 valueOf 函数，就是因为 obj 通过原型链找到了 valueOf 函数。
+
+    举个例子：
+    function Foo{}
+    Foo.prototype.name = 'zz';
+    Foo.prototype.getYear = function () {
+        return 1995;
+    };
+    Foo                     Foo.prototype {}
+    prototype （指针）       constructor
+                            name
+                            getYear
+    var f1 = new Foo()
+    console.log(f1.name);
+    console.log(f1.getYear());
+
+    注释：f1对象是从Foo函数new出来的，这样f1对象就可以调用Foo.prototype中的属性。
+    因为每个对象都有一个隐藏的属性——“__proto__”，这个属性引用了创建这个对象的函数的prototype。
+    即：f1.__proto__ === Foo.prototype
+
+    总结：
+    ①每个函数function都有一个prototype，prototype 是一个对象。
+    ②每个对象都有一个__proto__，指向创建该对象的函数的prototype
+    ③Object 是所有对象的爸爸，所有对象都可以通过 __proto__ 找到它
+    ④Function 是所有函数的爸爸，所有函数都可以通过 __proto__ 找到它
+
+    特例：Function.prototype 和 Object.prototype 是两个特殊的对象，他们由引擎来创建。
+    Object.prototype的__proto__指向的是null，Function.__proto__指向Function.prototype。
+    除了以上两个特殊对象，其他对象都是通过构造器 new 出来的
+ 
+    扩展：
+    ①let fun = Function.prototype.bind()，这个函数是不具有 prototype 属性的。
+    ②当我们声明一个函数时，prototype属性就被自动创建了，并且这个属性的值是一个对象（也就是原型），
+    只有一个属性 constructor。
+    ③所有实例都是对象，但是对象不一定都是实例。
+    ④不是所有函数都是 new Function() 产生的。
+    ⑤我们使用 new 操作符时，生成的实例（新）对象拥有了 _proto_属性，并且链接到了构造函数的原型上    
+     function Foo() {}
+        这个函数是 Function 的实例对象
+        function 就是一个语法糖
+        内部调用了 new Function(...)
+
+    思考： new实现了啥？
+        ①新生成了一个对象
+        ②链接到原型
+        ③绑定this
+        ④返回一个对象
+        /**
+        * new关键字的实现
+        * @param {*} Con 构造函数
+        * @param {*} args  不定量的参数
+        */
+        function create(Con, ...args) {
+            const obj ={} //创建一个空对象
+            Object.setPrototypeOf(obj,Con.prototype) //链接到原型
+            let result = Con.apply(obj, args) //绑定 this，执行构造函数 
+            return result instancrof Object ? result : obj //确保 new 出来的是个对象
+        }
+
+数据类型
+    六种原始数据类型：number,string, bolean,undefined,null,symbol
+    注意：
+    ①null不是对象类型，虽然 typeof null 会输出 object。这是 JS 存在的一个悠久 Bug。
+        注释：在 JS 的最初版本中使用的是 32 位系统，为了性能考虑使用低位存储变量的类型信息，000 开头代表是对象，
+        然而 null 表示为全零，所以将它错误的判断为 object 
+    ②JS 的 number 类型是浮点类型的，在使用中会遇到某些 Bug。0.1+0.2 ！= 0.3
+        解决：parseFloat((0.1 + 0.2).toFixed(10)) === 0.3 // true
+    ③原始类型存储的是值，存在栈中，没有函数可调用，可用的原因是被强制转换成了相对应的对象
+    ④不可变，比较的是值
+
+    引用类型（objiect类型）：array, function, object ，date, regexp类型（正则表达式）
+    注意：
+    ①可变，比较的是引用的比较
+    ②引用类型存储的是地址（指针），存在堆中
+    ③引用类型作为参数传递，会有切断原型链问题
+    例子：
+    function test(person) {
+        person.age = 26
+        person = {
+            name: 'yyy',
+            age: 30
+        }
+    
+        return person
+    }
+    const p1 = {
+        name: 'yck',
+        age: 25
+    }
+    const p2 = test(p1)
+    console.log(p1) //  {name: 'yck', age: 26}
+    console.log(p2) //  {name: 'yyy',, age: 30}  
+
+
+类型转换
+    js类型转换只有三种情况，转换成boolean,number,string
+
+    转Boolean：
+    除了 undefined， null， false， NaN， ''， 0， -0，其他所有值都转为 true，包括所有对象。
+
+    对象转原始类型：调用[[ToPrimitive]] 函数
+        ①判断是不是原始类型，是原始类型就不用转换了
+        ②对象先调用valueOf，tostring 若转换成基本类型，就返回转换的值
+        ③如果都没有返回原始类型，就会报错
+
+    四则运算
+        除了加法的运算符来说，只要其中一方是数字，那么另一方就会被转为数字
+        'a' + + 'b' // -> "aNaN" 因为+ 'b'等于 NaN (+ '1'快速获取number值)
+        4 + [1,2,3] // "41,2,3"
+        4 * [] // 0
+        4 * [1, 2] // NaN
+    比较
+        [] == ! []   ->   [] == false  ->  [] == 0  ->   '' == 0   ->  0 == 0   ->  true
+        {} == ! {}   ->   {} == false  ->  {} == 0  ->   NaN == 0    ->  false
+
+    数据转换小技巧
+    ①！可将变量除了 undefined， null， false， NaN， ''， 0， -0转为true，其他所有值都为false
+    ② 连接操作符 + ‘’将数字或布尔值转为字符串。 1 + '' = ‘1’， false + '' =  "false"
+    相反：+ ‘1’快速转为Number, +'布尔值' 转为0或者1
+    ③按位不运算符： ~~将数字字符串转换成整数型。 ~~'15' = 15
+    ④not操作符： ~15 = -16，~true = -2，~false = -1
+    ⑤位或运算符：将浮点数截断为整数 
+    console.log(23.9 | 0); > Result: 23
+    console.log(1553 / 100 | 0) > Result: 15
+    ⑥!!操作符转换布尔值：只要变量的值为:0、null、" "、undefined或者NaN都将返回的是false，反之返回的是true。
+
+类型检测
+1.typeof
+    ①对于原始类型来说，除了 null 都可以显示正确的类型，null为object
+    ②对于引用类型来说，除了函数都会显示 object
+
+2.instanceof   
+    语法:object（实例对象） instanceof constructor（构造函数）
+    作用:用来检测对象.__proto__是否等于构造函数的prototype，即
+    Object.getPrototypeOf(对象) === 函数.prototype
+    实现：
+    function myInstanceof(left, right) {
+        let prototype = right.prototype
+        left = left.__proto__
+        while (true) {
+          if (left === null || left === undefined)
+            return false
+          if (prototype === left)
+            return true
+          left = left.__proto__
+        }
+      }
+
+    判断该object是否为数组的方法：
+        ①Array.isArray(obj)
+        ②对象 insratanceof Array(Object的原型链上找Array构造函数)
+        ③对象.constructor === Array(注意constructor属性可以改写)
+        ④Object.prototype.toString.call/apply(对象) === '[object Array]'; 
+        （每一个继承自Object的对象都拥有toString的方法。）
+        注释：对象的toString方法会返回对象的类型，所以我们需要使用call或者apply方法来改变toString方法的执行上下文。
+        而数组和字符串自己的toString方法只会返回内容的字符串,注意改写Object原型链上的toString的情况
+
+    判断对象的数据类型
+        function isType(type){ 
+            return function (target) { 
+                return `[object ${type}]` === Object.prototype.toString.call(target) 
+            } 
+        } 
+        isType('Array')([1,2,3])
+
+深拷贝和浅拷贝
+    对象类型在赋值的过程中其实是复制了地址，从而会导致改变了一方其他也都被改变的情况
+    1.浅拷贝
+        ①Object.assign
+        ②通过展开运算符 ... 来实现浅拷贝
+    例子：
+        let a = {
+            age: 1
+        }
+        let b = Object.assign({}, a)  等同于 let b = { ...a }
+        a.age = 2
+        console.log(b.age) // 1
+
+    2.深拷贝
+        ①JSON.parse(JSON.stringify(object)) 
+        注意：该方法有局限性
+            ①会忽略 undefined
+            ②会忽略 symbol
+            ③不能序列化函数
+            ④不能解决循环引用的对象
+
+        ②自己实现深拷贝函数或者loadsh
+        function deepClone(obj) {
+            function isObject(o) {
+                return o instanceof Object
+            }
+        
+            if (!isObject(obj)) {
+                throw new Error('非对象')
+            }
+        
+            let isArray = Array.isArray(obj)
+            let newObj = isArray ? [...obj] : { ...obj }
+
+            Reflect.ownKeys(newObj).forEach(key => {
+                newObj[key] = isObject(obj[key]) ? deepClone(obj[key]) : obj[key]
+            })
+        
+            return newObj
+        }
+
+原型继承和class继承
+    ①原型链继承
+        function Parent() {
+
+        }
+        Parent.prototype.val = 123
+        Parent.prototype.getValue = function() {
+            console.log('hello word')
+        }
+        function Child() {
+
+        }
+        Child.prototype = new Parent()
+        const child = new Child()
+        console.log(child.val) // 123
+        console.log(child.getValue()) // 'hello word'
+        
+    缺点：所有属性被共享，而且不能传递参数
+
+    ②构造函数继承
+        function Parent(value) {
+            this.val = value
+            this.getValue = function() {
+                console.log(this.val)
+            }
+        }
+        function Child(value) {
+            Parent.call(this, value)
+        }
+        const child = new Child(1)
+
+        child.getValue() // 1
+        child instanceof Parent // true
+        
+    优点：①可以传递参数 ②避免了引用类型的属性被所有实例共享
+    缺点：①所有方法都在构造函数内，不能实现函数复用，大大浪费内存 ②不能继承原型、属性方法
+
+    ③组合继承（原型链+构造函数）
+        function Parent(value) {
+            this.val = value
+        }
+        Parent.prototype.getValue = function() {
+            console.log(this.val)
+        }
+        function Child(value) {
+            Parent.call(this, value) //继承父类属性
+        }
+        Child.prototype = new Parent() //继承父类函数
+        <!-- Child.prototype.constructor = Child; -->
+        const child = new Child(1)
+
+        child.getValue() // 1
+        child instanceof Parent // true
+
+    优点：①可传参 ②不会与父类引用属性共享 ③可以复用父类的函数
+    缺点：继承父类函数的时候调用了父类构造函数，导致子类的原型上多了不需要的父类属性，存在内存上的浪费。
+
+
+    ④寄生组合继承
+        function Parent(value) {
+            this.val = value
+        }
+        Parent.prototype.getValue = function() {
+            console.log(this.val)
+        }
+
+        function Child(value) {
+            Parent.call(this, value)
+        }
+        <!-- Object.create(新创建对象的原型对象， Object.defineProperties()在一个对象上定义新的属性或修改现有属性，并返回该对象。) -->
+        Child.prototype = Object.create(Parent.prototype, {
+            constructor: {
+                value: Child,
+                enumerable: false,//可枚举性
+                writable: true, //可写性
+                configurable: true //可配置性
+            }
+        })
+        const child = new Child(1)
+        child.getValue() // 1
+        child instanceof Parent // true
+
+    优点：①将父类的原型赋值给了子类 
+         ②将构造函数设置为子类，这样既解决了无用的父类属性问题，还能正确的找到子类的构造函数。
+
+
+    ⑤Class 继承
+        class Parent {
+            constructor(value) {
+                this.val = value
+            }
+            getValue() {
+                console.log(this.val)
+            }
+        }
+        class Child extends Parent { //extends 表明继承自哪个父类 
+            constructor(value) {
+                super(value) //super相当于Parent.call(this, value)
+                this.val = value
+            }
+        }
+        let child = new Child(1)
+        child.getValue() // 1
+        child instanceof Parent // true
+
+    注释：class可以看作只是一个语法糖，让对象原型的写法更加清晰、更像面向对象编程的语法而已
+
+class:
+    特点：
+    ①ES6 的类，完全可以看作构造函数的另一种写法。类的数据类型就是函数，类本身就指向构造函数。
+    ②类相当于实例的原型，所有在类中定义的方法都定义在类的prototype属性，都会被实例继承。
+    类内部定义的方法都是不可枚举的。
+        注释： Object.keys(Point.prototype)// []
+        Object.getOwnPropertyNames(Point.prototype)/ ["constructor","toString"]
+    ③constructor方法就是构造方法（默认方法），通过new命令生成对象实例时，自动调用该方法。
+    默认返回实例对象（即this）。
+    ④直接对类使用new命令。类跟普通构造函数的一个主要区别，后者不用new也可以执行。
+    ⑤类的所有实例共享一个原型对象
+    ⑥与 ES5 一样，在“类”的内部可以使用get和set关键字，对某个属性设置存值函数和取值函数，
+    拦截该属性的存取行为。存值函数和取值函数是定义在html属性的描述对象上面。
+    ⑦类的属性名，可以采用表达式。与函数一样，类也可以使用表达式的形式定义。
+
+    注意：实例的属性除非显式定义在其本身（即定义在this对象上），否则都是定义在原型上（即定义在class上）。
+    例子：
+        point.hasOwnProperty('x') // true x是实例对象Point自身的属性
+        point.hasOwnProperty('toString') // false
+        Object.getPrototypeOf 方法来获取实例对象的原型, 从子类上获取父类。
+    class Point {
+        constructor(x) {
+            this.x = x
+        }
+      
+        toString() {
+            return this.x
+        }
+    }
+      
+    // 等同于
+    Point.prototype = {
+        constructor() {},
+        toString() {},
+    };
+
+   
+注意：①class是严格模式的
+     ②不存在变量提升
+     ③类的方法内部如果含有this，它默认指向类的实例。但是，必须非常小心，一旦单独使用该方法，很可能报错。
+    例子：
+    class Logger {
+        printName(name = 'there') {
+          this.print(`Hello ${name}`);
+        }
+    }
+    const logger = new Logger();
+    const { printName } = logger;
+    printName(); // TypeError: Cannot read property 'print' of undefined
+    注释：单独使用this会指向该方法运行时所在的环境。由于 class 内部是严格模式，所以 this 实际指向的是undefined
+    
+    解决方法：①构造函数绑定this ②使用箭头函数(箭头函数内部的this总是指向定义时所在的对象)
+        ①class Logger {
+            constructor() {
+                this.printName = this.printName.bind(this);
+            }
+        }
+        ②class Obj {
+            constructor() {
+                this.getThis = () => this;
+            }
+        }
+        
+        const myObj = new Obj();
+        myObj.getThis() === myObj // true
+
+    类的静态方法：
+        ①如果在一个方法前，加上static关键字，就表示该方法不会被实例继承，而是直接通过类来调用，
+        这就称为“静态方法”。
+        ③父类的静态方法，可以被子类继承
+
+    类的静态属性：
+        ①静态属性指的是 Class 本身的属性，即Class.propName，而不是定义在实例对象（this）上的属性。
+        ②实例属性除了定义在constructor()方法里面的this上面，也可以定义在类的最顶层。
+        ③现在有一个提案提供了类的静态属性，写法是在实例属性的前面，加上static关键字  
+        class Foo {// 老写法
+            // ...
+        }
+        Foo.prop = 1;
+
+        class Foo { // 新写法
+            static prop = 1;
+        }
+
+    私有方法和私有属性：
+    私有方法和私有属性，是只能在类的内部访问的方法和属性，外部不能访问。这是常见需求，有利于代码的封装，
+    但 ES6 不提供，只能通过变通方法模拟实现。
+    解决办法：
+        ①命名上加以区分
+        ②将私有方法移出模块，因为模块内部的所有方法都是对外可见的
+    
+
+    new.target属性：这个属性可以用来确定构造函数是怎么调用的。
+    可以写出不能独立使用、必须继承后才能使用的类。
+    class Shape {
+        constructor() {
+        if (new.target === Shape) {
+            throw new Error('本类不能实例化');
+        }
+        }
+    }
+    
+    class Rectangle extends Shape {
+        constructor(length, width) {
+        super();
+        // ...
+        }
+    }
+  
+    var x = new Shape();  // 报错
+    var y = new Rectangle(3, 4);  // 正确
+
+    注意：①在函数外部，使用new.target会报错。
+        ②上面代码中，Shape类不能被实例化，只能用于继承。
+
+class继承
+    和ES5继承机制的不同：
+    ①ES5 的继承，实质是先创造子类的实例对象this，然后再将父类的方法添加到this上面（Parent.apply(this)）。
+    ②ES6 的继承机制完全不同，实质是先将父类实例对象的属性和方法，加到this上面（所以必须先调用super方法），
+    然后再用子类的构造函数修改this。
+
+    注意：在子类的构造函数中，只有调用super之后，才可以使用this关键字，否则会报错。这是因为子类实例的构建，
+    基于父类实例，只有super方法才能调用父类实例。
+    class Point {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+    
+    class ColorPoint extends Point {
+        constructor(x, y, color) {
+            this.color = color; // ReferenceError
+            super(x, y); //调用父类的constructor(x, y)，super表示父类的构造函数，用来新建父类的this对象
+            this.color = color; // 正确
+        }
+        toString() {
+            return this.color + ' ' + super.toString(); // 调用父类的toString()
+        }
+    }
+    ColorPoint.__proto__ === Point // true
+    ColorPoint.prototype.__proto__ === Point.prototype // true
+
+    super关键字
+    1.作为函数调用
+    ①super()代表调用父类的构造函数，返回的是子类的实例，super内部this指的是子类ColorPoint的实例
+    super()在这里相当于Point.prototype.constructor.call(ColorPoint)。
+    ②ES6 要求，子类的构造函数必须执行一次super函数。
+
+    2.作为对象调用
+    ①在普通方法中，指向父类的原型对象
+    ②在静态方法中，指向父类
+
+
+Mixin 模式的实现：多个对象合成一个新的对象，新对象具有各个组成成员的接口。
+
+
+设计模式
+    ①工厂模式: 避免创建多个对象，用户不关心逻辑，参数使用,只需要返回给我一个实例对象，提供接口给我调用
+        1.传统
+        function createPerson (name){
+            const obj = new Object() //原料
+            obj.name = name  //加工
+            obj.sayName = function () {
+                console.log(this.na )
+            }
+            return obj //出厂
+        } 
+        var p1 = createPerson('zz')
+        var p2 = createPerson('xx')
+        p1 === p2 //false 
+
+        2.js内置
+        function createPerson (name){
+            this.name = name
+            this.sayName = function () {
+                console.log(this.name)
+            }
+        } 
+
+        var p1 = new createPerson('zz')
+        var p2 = new createPerson('xx')
+        p1 === p2 //false 
+        p1.sayName === p2.sayName //false 产生多个相同函数
+
+    ②单例模式：每次new出来的是同一个实例
+        条件：①必须有一个全局变量
+            ②必须return同一个对象
+            function Fn(){
+                Fn.obj = {name:"admin"};
+                return Fn;
+            }
+            var obj1 = new Fn();
+            var obj2 = new Fn();
+            
+            console.log(obj1==obj2);			//true
+            console.log(obj1.obj.name === obj2.obj.name);//admin true
+
+        应用：模态框即多次点击按钮,显示同一个提示框
+        var obtn = document.getElementById("btn");
+        function Toast(){
+            if(!Toast.div){
+                Toast.div = document.createElement("div");
+                Toast.div.className = "box";
+                document.body.appendChild(Toast.div);
+                clearTimeout(Toast.timer);
+                Toast.timer = setTimeout(function(){
+                    Toast.div.style.display = "none";
+                },1000)
+            }else{
+                Toast.div.style.display = "block";
+                clearTimeout(Toast.timer);
+                Toast.timer = setTimeout(function(){
+                    Toast.div.style.display = "none";
+                },1000)
+            }
+            return Toast;
+        }
+            
+        obtn.onclick = function(){
+            var a = new Toast();
+            var b = new Toast();
+            console.log(a == b)
+        }
+
+    ③代理模式：事件委托就是代理模式
+    ④适配器模式：兼容
+    ⑤观察者模式：
+        例子：
+        1.观察目标person
+            const person = observable({
+                name: '张三',
+                age: 20
+            });
+            
+            function print() {
+                console.log(`${person.name}, ${person.age}`)
+            }
+            2.观察者print
+            observe(print);
+            person.name = '李四';
+            // 输出:李四, 20
+
+        使用Proxy实现简单的观察者模式
+        const queuedObservers = new Set(); //定义一个set集合
+        const observe = fn => queuedObservers.add(fn); //所有观察者函数放进这个集合
+        const observable = obj => new Proxy(obj, {set}); //observable函数返回原始对象的代理，拦截赋值操作
+        function set(target, key, value, receiver) { //拦截函数set之中，会自动执行所有观察者
+            const result = Reflect.set(target, key, value, receiver);
+            queuedObservers.forEach(observer => observer());
+            return result;
+        }
+
+    总结：思路是observable函数返回一个原始对象的 Proxy 代理，拦截赋值操作，触发充当观察者的各个函数。
+
+    ⑥发布订阅模式:点击一个按钮触发了点击事件
+        应用在 Vue 中，实现响应式也是使用了该模式。对于需要实现响应式的对象来说，在 get 的时候会进行依赖收集，
+        当改变了对象的属性时，就会触发派发更新。
+    ⑦策略模式
+
+
+Proxy：自定义对象中的操作。
+    let p = new Proxy(target, handle)
+    target（所要拦截的目标对象）: 需要添加代理的对象
+    handle（用来定制拦截行为）: 用来自定义对象中的操作，比如可以用来自定义 set 或者 get 函数。
+
+    注释：在目标对象之前架设一层“拦截”，外界对该对象的访问，都必须先通过这层拦截，
+    因此提供了一种机制，可以对外界的访问进行过滤和改写。Proxy 这个词的原意是代理，用在这里表示
+    由它来“代理”某些操作。
+
+    应用：Proxy 来实现一个数据响应式
+    let onWatch = (obj, setBind, getLogger) => {
+        let handler = {
+            get(target, property, receiver) { //get中收集依赖
+                getLogger(target, property)
+                if (typeof target[property] === 'object' && target[property] !== null) {
+                    return new Proxy(target[property], handler);
+                } else {
+                    return Reflect.get(target, property);
+                }
+                // return Reflect.get(target, property, receiver)
+            },
+           
+            set(target, property, value, receiver) { //set中派发更新
+                setBind(value, property)
+                return Reflect.set(target, property, value)
+            }
+        }
+        return new Proxy(obj, handler)
+    }
+  
+    let obj = { a: 1 }
+    let p = onWatch(
+        obj,
+        (v, property) => { //改写通知
+            console.log(`监听到属性${property}改变为${v}`)
+        },
+        (target, property) => { //读取通知
+            console.log(`'${property}' = ${target[property]}`)
+        }
+    )
+    p.a = 2 // 监听到属性a改变
+    p.a // 'a' = 2
+
+    Vue3.0使用 Proxy 替换原本的 API：
+        优点：
+        ①Proxy 无需一层层递归为每个属性添加代理，一次即可完成以上操作。性能上更好。
+        ②并且原本的实现有一些数据更新不能监听到。
+        缺点：
+        ①浏览器的兼容性不好了
+    
+        
+Proxy和Reflect
+    Reflect对象与Proxy对象一样，也是 ES6 为了操作对象而提供的新 API
+
+
+模块化
+    优点：
+        ①解决命名冲突
+        ②提供复用性
+        ③提高代码可维护性
+
+    三个规范： 
+    ①AMD规范（require.js 不管有没有用， 先加载过来）
+        1.特点：前期消耗网络资源大， 但是后期运行效率高
+        2.推崇前置
+        3.区分全局require和局部require
+        4.API 默认是一个多用
+        5.语法
+        define(['./a', './b'], function(a, b) { // 依赖必须一开始就写好，模块加载完毕可以使用
+            a.doSomething()
+
+            // 此处略去 100 行
+
+            b.doSomething()
+            …
+        })
+
+    ②CMD规范（seajs 有用我再去加载）
+        1.特点： 整个自选消耗曲线比较平缓
+        2.推崇就近
+        3.没有全局require,seajs.use 来实现模块系统的加载启动
+        4.API 严格区分，推崇职责单一
+        5.语法
+        define(function(require, exports, module) {
+            var a = require('./a’)
+            a.doSomething()
+
+            // 此处略去 100 行
+
+            var b = require('./b') // 依赖可以就近书写， 可以把 require 写在函数体的任意地方实现延迟加载
+            b.doSomething()
+            // …
+        })
+
+    ③commonJS规范（ndoejs规范用来写后台的）
+        注释：CommonJS 最早是 Node 在使用，目前也仍然广泛使用，比如在 Webpack 中你就能见到它，
+        当然目前在 Node 中的模块管理已经和 CommonJS 有一些区别了。
+        // a.js
+        module.exports = {
+            a: 1
+        }
+        // or 
+        exports.a = 1
+        
+        // b.js
+        var module = require('./a.js')
+        module.a // -> log 1
+        注释：
+        ①这里其实就是包装了一层立即执行函数，这样就不会污染全局变量了
+        ②重要的是 module 这里，module 是 Node 独有的一个变量
+
+        module的实现：
+        var module = {
+            id: 'xxxx', // 我总得知道怎么去找到他吧
+            exports: {} // exports 就是个空对象
+        }
+        
+        var exports = module.exports  // 这个是为什么 exports 和 module.exports 用法相似的原因
+        注意：不能对 exports 直接赋值。因为  exports 和 module.exports 享有相同地址，通过
+        改变对象的属性值会对两者都起效，但是如果直接对 exports 赋值就会导致两者不再指向同一个内存地址，
+        修改并不会对 module.exports 起效。
+
+    ④es6模块化
+        ES Module 是原生实现的模块化方案，与 CommonJS 有以下几个区别：
+        ①CommonJS 模块输出的是一个值的拷贝，就算导出的值变了，导入的值也不会改变，所以如果想更新值，必须重新导入一次。
+        ES6 模块输出的是值的引用，导入导出的值都指向同一个内存地址，所以导入值会跟随导出值变化。
+        ②CommonJS 模块是运行时加载，ES6 模块是编译时输出接口。(可静态优化即引入宏（macro）和类型检验
+        （type system）这些只能靠静态分析实现的功能）
+        ③CommonJS 支持动态导入，也就是 require(${path}/xx.js)，后者目前不支持，但是已有提案
+        ④CommonJS 是同步导入，因为用于服务端，文件都在本地，同步导入即使卡住主线程影响也不大。
+        而ES6是异步导入，因为用于浏览器，需要下载文件，如果也采用同步导入会对渲染有很大影响
+        ⑤ES Module 会编译成 require/exports 来执行的
+        ⑥ES6 模块不是对象，而是通过export命令显式指定输出的代码，再通过import命令输入；
+        CommonJS 模块就是对象，输入时必须查找对象属性
+
+        export
+            ①使用大括号指定所要输出的一组变量
+            ②除了输出变量，还可以输出函数或类（class）
+            ③使用as关键字重命名输出的变量名
+            ④对外的接口，必须与模块内部的变量建立一一对应关系
+            ⑤输出的接口，与其对应的值是动态绑定关系（动态更新）
+            ⑥export命令可以出现在模块的任何位置，只要处于模块顶层就可以
+
+        import
+            ①import命令输入的变量都是只读的，但变量如果是一个对象，改写变量的属性是允许的
+            ②import命令具有提升效果：import的执行早于foo的调用。这种行为的本质是，import命
+            令是编译阶段执行的，在代码运行之前。
+            ③import是静态执行，引擎处理import语句是在编译时。所以不能使用表达式和变量。这些
+            只有在运行时才能得到结果的语法结构。
+            ④模块的整体加载： *指定一个对象，所有输出值都加载再这个对象上。如import * as circle from './circle';
+            ⑤import和export命令只能在模块的顶层，不能在代码块之中。原因如③，如果import命令要取代 Node 的require方法，
+            这就形成了一个障碍。因为require是运行时加载模块，import命令无法取代require的动态加载功能。
+            例如：path = './' + fileName;
+                const myModual = require(path); //require到底加载哪一个模块，只有运行时才知道
+
+        import（）2020提案支持动态加载模块
+            ①import命令能够接受什么参数，import()函数就能接受什么参数，两者区别主要是后者为动态加载。
+            ②import()类似于 Node 的require方法，区别主要是前者是异步加载，后者是同步加载。
+            ③运行时执行，与所加载的模块没有静态连接关系，这点也是与import语句不相同。
+            ④import()函数可以用在任何地方，不仅仅是模块，非模块的脚本也可以使用。
+            例子：
+            const main = document.querySelector('main');
+
+            import(`./section-modules/${someVariable}.js`)
+            .then(module => {
+                module.loadPageInto(main);
+            })
+            .catch(err => {
+                main.textContent = err.message;
+            });
+
+            适用场合：
+            ①按需加载
+                button.addEventListener('click', event => {
+                    import('./dialogBox.js')
+                    .then(dialogBox => {
+                    dialogBox.open();
+                    })
+                    .catch(error => {
+                    /* Error handling */
+                    })
+                });
+
+            ②条件加载
+                if (condition) {
+                    import('moduleA').then(...);
+                } else {
+                    import('moduleB').then(...);
+                }
+
+            ③动态的模块路径
+            import(f())
+            .then(...);
+
+            注意点：
+            ①import()加载模块成功以后，这个模块会作为一个对象，当作then方法的参数。
+            因此，可以使用对象解构赋值的语法，获取输出接口。
+            ②import()也可以用在 async 函数之中
+            ③可配合Promise.all([
+            import('./module1.js'),
+            import('./module2.js'),
+            import('./module3.js'),
+            ])使用
+
+        export default
+            ①为模块指定默认输出，export default命令的本质是将后面的值，赋给default变量。
+            也可以直接将一个值写在export default之后，但它后面不能跟变量声明语句。
+                例子：
+                export var a = 1; // 正确
+
+                var a = 1;
+                export default a;  // 正确
+
+                export default var a = 1;   // 错误
+
+            ②import命令不需要知道原模块输出的变量名，可以为模块指定任意名字。需要注意的是，这时
+            import命令后面，不使用大括号，如：import _ from 'lodash';
+            原因：
+            export default命令用于指定模块的默认输出。显然，一个模块只能有一个默认输出，因此export default
+            命令只能使用一次。所以，import命令后面才不用加大括号，因为只可能唯一对应export default命令。
+
+        export 与 import 的复合写法
+            export { foo, bar } from 'my_module';
+
+            // 可以简单理解为
+            import { foo, bar } from 'my_module';
+            export { foo, bar };
+            注释：先输入后输出同一个模块，foo和bar实际上并没有被导入当前模块，只是相当于对外转发了这两个接口，
+            导致当前模块不能直接使用foo和bar。
+
+    模块的继承
+
+    跨模块常量
+    如果要使用的常量非常多，可以建一个专门的constants目录，将各种常量写在不同的文件里面，保存在该目录下。
+
+var、let和const
+    ①函数提升优先于变量提升
+    ②var 存在提升，我们能在声明之前使用。let、const 因为暂时性死区的原因，不能在声明前使用
+    ③var 在全局作用域下声明变量会导致变量挂载在 window 上，其他两者不会
+
+    let
+    ①不存在变量提升
+        // var 的情况
+        console.log(foo); // 输出undefined
+        var foo = 2;
+
+        // let 的情况
+        console.log(bar); // 报错ReferenceError
+        let bar = 2;
+    ②暂时性死区：
+            ①在代码块内，使用let命令声明变量之前，该变量都是不可用的。
+            ②只要变量在声明没有完成前使用，就会报错
+            ③暂时性死区的本质就是，只要一进入当前作用域，所要使用的变量就已经存在了，但是不可获取，
+            
+            只有等到声明变量的那一行代码出现，才可以获取和使用该变量
+        例子：
+            var x = x; // 不报错
+            let x = x; // 报错 ReferenceError: x is not defined
+
+            function bar(x = y, y = 2) {
+                return [x, y];
+            }
+            
+            bar(); // 报错
+        注释： 参数x默认值等于另一个参数y，而此时y还没有声明，属于“死区”
+
+    ③不允许重复声明： let不允许在相同作用域内，重复声明同一个变量。
+        function func(arg) {
+            let arg;
+        }
+        func() // 报错
+        
+        function func(arg) {
+            {
+            let arg;
+            }
+        }
+        func() // 不报错
+
+    ④块级作用域：let实际上为 JavaScript 新增了块级作用域。
+        function f1() {
+            let n = 5;
+            if (true) {
+                let n = 10;
+            }
+            console.log(n); // 5 外层代码块不受内层代码块的影响
+        }
+        为什么需要块级作用域？
+            ①内层变量可能会覆盖外层变量
+            例子：
+            var tmp = new Date();
+            function f() {
+                console.log(tmp);
+                if (false) {
+                    var tmp = 'hello world';
+                }
+            }
+
+            f(); // undefined
+
+            ②用来计数的循环变量泄露为全局变量
+                var s = 'hello';
+                for (var i = 0; i < s.length; i++) {
+                    console.log(s[i]);
+                }
+
+                console.log(i); // 5
+                注释：变量i只用来控制循环，但是循环结束后，它并没有消失，泄露成了全局变量。
+
+                var a = [];
+                for (var i = 0; i < 10; i++) {
+                    a[i] = function () {
+                        console.log(i);
+                    };
+                }
+                a[6](); // 10
+                注释：变量i是var命令声明的，在全局范围内都有效，所以全局只有一个变量i，运行时输出的是最后
+                一轮的i的值，也就是 10。
+                变量i是let声明的，当前的i只在本轮循环有效，所以每一次循环的i其实都是一个新的变量，所以最后
+                输出的是6。
+
+            ③取代了匿名立即执行函数表达式（匿名 IIFE）
+                ① IIFE 写法
+                (function () {
+                    var tmp = ...;
+                    ...
+                }());
+
+                ②块级作用域写法
+                {
+                    let tmp = ...;
+                    ...
+                }
+            注意：
+                ①允许在块级作用域内声明函数。
+                ②函数声明类似于var，即会提升到全局作用域或函数作用域的头部。
+                ③同时，函数声明还会提升到所在的块级作用域的头部。
+    const
+    const和let一样 ：
+            ①块级作用域： 只在声明所在的块级作用域内有效
+            ②不可以重复声明
+            ③暂时性死区：变量在声明没有完成前使用就会报错
+            ④没有变量提升
+
+            不一样的是对于const来说：
+            ①只声明不赋值，就会报错
+            ②const一旦声明常量就不可以再修改,引用类型的数据可以改内容，但不能重新赋值。
+            注释：因为声明的变量指向的内存地址不能改。
+            对常量来说：值就保存在变量指向的那个内存地址，因此不能改。
+            对引用数据来说const保存的只是一个指向实际数据的指针，const只能保证这个指针（内存地址）是固定的，
+            指向的数据结构是可以改变的。
+
+声明的六种方法
+    es5:function var
+    es6: let const import class
+
+ES2020 引入globalThis作为顶层对象。任何环境下，globalThis都是存在的，都可以从它拿到顶层对象，
+指向全局环境下的this。
+
+严格模式
+    ①全局变量声明时，必须加关键字(var)
+        正常模式：a = 10;    console.log(a)    //10
+        严格模式：a = 10;    console.log(a)    //a is not defined
+ 
+    ②this无法指向全局对象
+        正常模式：function fn(){ console.log(this) }        //window
+        严格模式：function fn(){ console.log(this) }        //undefined
+
+    ③函数内不允许出现重名参数
+        正常模式：function fn( a,b,b ){ console.log(a,b) }
+                fn(1,2,3)        //1,3
+        严格模式：function fn( a,b,b ){ }
+         //报错：Duplicate parameter name not allowed in this context    在此上下文中不允许出现重复的参数名
+
+    ④arguments对象
+        4.1 arguments对象不允许被动态改变
+            正常模式：function fn(a){
+                        a=20;
+                        console.log(a);                //10
+                        console.log(arguments[0]);     //20
+                    }
+                    fn(10);
+
+            严格模式：function fn(a){
+                        a=20;
+                        console.log(a);                //10
+                        console.log(arguments[0]);     //10
+                    }
+                    fn(10);
+        4.2 arguments对象不允许被自调用（递归）
+            正常模式：function fn(a){
+                        if( a == 1 ){
+                            return 1;
+                        }
+                        return arguments.callee(a-1) + a;
+                    }
+                    fn(3);            //6
+            严格模式：function fn(a){
+                        if( a == 1 ){
+                            return 1;
+                        }
+                        return arguments.callee(a-1) + a;
+                    }
+                    //报错：'caller', 'callee', and 'arguments' properties may not be accessed on strict mode functions or the arguments objects for calls to them
+                    //报错："caller"，"arguments"，"callee"，不能在严格模式下使用
+
+
+    ⑤新增的保留字：implements，interface，let，package，private，protected，public，static，yield
+
+
+闭包
+定义：函数 A 内部有一个函数 B，函数 B 可以访问到函数 A 中的变量，那么函数 B 就是闭包。
+核心：当一个函数被调用完成之后，其执行上下文环境将被销毁，其中的变量也会被同时销毁。闭包的核心内容是
+函数调用完成之后，其执行上下文环境不会接着被销毁。
+两种情况：
+    ①函数作为返回值
+    function fn() {  //fn上下文环境不能销毁，还依旧存在于上下文环境栈中，因此闭包会增加栈开销
+        var max = 10
+        return function bar(x){
+          if(x > max) {
+            console.log(x);
+          }
+        }
+      }
+    var f1 = fn(); //bar函数作为返回值，赋值给f1,跨作用域取值max
+    f1()
+
+    ②函数作为参数传递
+    var max = 10,
+    fn = function(x) {
+      if (x > max) {
+        console.log(x) //15
+      }
+    }
+    (function (fn) {
+      var max = 100
+      fn(15) //max取值为10,原因：作用域在函数定义时就已经确定了。而不是在函数调用时确定。
+    })(fn)
+
+    例子：循环中使用闭包解决 `var` 定义函数的问题
+    for (var i = 1; i <= 5; i++) {
+        setTimeout(function timer() {
+          console.log(i) //打印一堆6
+        }, i * 1000)
+      }  
+    解决办法:
+    ①for (var i = 1; i <= 5; i++) {
+        setTimeout(function timer() {
+          console.log(i) 
+        }, i * 1000, i)
+    } 
+    ② 
+    for (var i = 1; i <= 5; i++) {
+       (function(x){
+            setTimeout(function timer() {
+                console.log(i) 
+            }, x * 1000)
+       })(i) 
+    }
+    ③使用 let 定义 i 来解决问题了，这个也是最为推荐的方式。
+
+    应用：
+    写出一个闭包，函数father里有一个局部变量a，在函数外全局状态能调用到，并每次累加
+        function father(){
+            var a =10;
+            return function(){
+                a++;
+                return a;
+            }
+        }
+        var fn=father();
+        console.log(fn()); //11
+        console.log(fn()); //12
+        console.log(fn()); //13
+             
+    注释：嵌套一个作用域，将外部的局部变量存起来
+
+垃圾回收机制
+    ①标记清除法
+    给存储在内存中的所有变量加上标记，去掉被引用的变量和环境中的变量的标记，删除还有标记的变量，原因
+    是环境中无法再访问到这些变量了，最后垃圾收集器销毁标记的变量并回收它们所占用的空间。
+
+    ②引用计数法
+    跟踪记录每个变量被引用的次数，当应用次数为0，则回收 ，循环引用不会被清楚，全局变量和对象，都可以手动解除引用。
+
+    避免内存泄露：解除引用是让值脱离执行环境，以便垃圾收集器下次运行时将其回收
+
+    V8 下的垃圾回收机制是怎么样的？ js引擎版本
+    V8 实现了准确式 GC，GC 算法采用了分代式垃圾回收机制。因此，V8 将内存（堆）分为新生代和老生代两部分。
+    ①新生代
+        新生代中的对象一般存活时间较短，使用 Scavenge GC 算法。
+        在新生代空间中，内存空间分为两部分，分别为 From 空间和 To 空间。
+        在这两个空间中，必定有一个空间是使用的，另一个空间是空闲的。
+        新分配的对象会被放入 From 空间中，当 From 空间被占满时，新生代 GC 就会启动了。
+        算法会检查 From 空间中存活的对象并复制到 To 空间中，如果有失活的对象就会销毁。
+        当复制完成后将 From 空间和 To 空间互换，这样 GC 就结束了。
+
+    什么情况下对象会出现在老生代空间中？
+    ①新生代中的对象是否已经经历过一次 Scavenge 算法，如果经历过的话，会将对象从新生代空间移到老生代空间中。
+    ②To 空间的对象占比大小超过 25 %。在这种情况下，为了不影响到内存分配，会将对象从新生代空间移到老生代空间中。
+
+    ②老生代
+    老生代中的对象一般存活时间较长且数量也多，使用了两个算法，分别是标记清除算法和标记压缩算法。
+    清除对象后会造成堆内存出现碎片的情况，当碎片超过一定限制后会启动压缩算法。在压缩过程中，
+    将活的对象像一端移动，直到所有对象都移动完成然后清理掉不需要的内存。
+
+
+call/apply/bind
+
+call：
+func.apply(thisArg, arg1,arg2,...)
+该方法的语法和作用与 apply() 方法类似，只有一个区别，
+就是 call() 方法接受的是一个参数列表，而 apply() 方法接受的是一个包含多个参数的数组
+
+call的实现：
+Function.prototype.myCall = function(context) {
+    if (typeof this !== 'function') {
+      throw new TypeError('Error')
+    }
+    context = context || window
+    context.fn = this
+    const args = [...arguments].slice(1) //删除myCall第一个参数
+    const result = context.fn(...args)
+    delete context.fn
+    return result
+  }
+
+总结：
+  ①context是myCall的第一个参数，不传默认上下文为 window
+  ②接下来给 context 创建一个 fn 属性，并将值设置为调用myCall的函数
+  ③因为 call 可以传入多个参数作为调用函数的参数，所以需要将参数剥离出来
+  ④调用函数并将对象上的函数删除
+
+apply:
+    处理参数和 call 有区别
+    if (arguments[1]) {
+        result = context.fn(...arguments[1])
+    } else {
+        result = context.fn()
+    }
+
+apply:
+func.apply(thisArg, [argsArray])
+thisArg:在 func 函数运行时使用的 this 值
+[argsArray]: 一个数组或者类数组对象，其中的数组元素将作为单独的参数传给 func 函数
+返回值：
+调用有指定this值和参数的函数的结果。
+例子：
+    var array = ['a', 'b'];
+    var elements = [0, 1, 2];
+    array.push.apply(array, elements);
+    console.info(array); // ["a", "b", 0, 1, 2]
+
+bind:
+bind() 方法创建一个新的函数，在 bind() 被调用时，bind() 的第一个参数是这个新函数的 this，
+而其余参数将作为新函数的参数，供调用时使用。
+返回一个原函数的拷贝，并拥有指定的 this 值和初始参数。
+
+bind的实现：
+
+Function.prototype.myBind = function (context) {
+    if (typeof this !== 'function') {
+      throw new TypeError('Error')
+    }
+    const _this = this
+    const args = [...arguments].slice(1)
+    return function F() {   
+      if (this instanceof F) { // 因为返回了一个函数，我们可以 new F()，所以需要判断
+        return new _this(...args, ...arguments) //如果使用new运算符构造绑定函数，则忽略该值
+      }
+      return _this.apply(context, args.concat(...arguments))
+    }
+  }
+
+
+this指向
+  function foo() {
+    console.log(this.a)
+  }
+  var a = 1
+  foo()
+
+  const obj = {
+    a: 2,
+    foo: foo
+  }
+  obj.foo()
+  
+  const c = new foo()
+
+  ①对于直接调用 foo 来说，不管 foo 函数被放在了什么地方，this 一定是 window
+  ②对于 obj.foo() 来说，我们只需要记住，谁调用了函数，谁就是 this，所以在这个场景下 foo 函数中的 this 就是 obj 对象
+  ③对于 new 的方式来说，this 被永远绑定在了 c 上面，不会被任何方式改变 this
+  ④箭头函数没有this,所以箭头函数的this指向包裹箭头函数的第一个普通函数中的this
+  ⑤bind,call，apply  this是第一个参数
+    let a = {}
+    let fn = function () { console.log(this) }
+    fn.bind().bind(a)() // 等同于
+
+    let fn2 = function fn1() {
+        return function() {
+          return fn.apply() //不管我们给函数 bind 几次，fn 中的 this 永远由第一次 bind 决定，所以结果是 window
+        }.apply(a)
+    }
+    fn2()
+
+    优先级：new --> bind --> obj.foo() --> foo
+
+    注意： setTimeout/setInterval this指向全局
+
+    扩展：在Fn.prototype.getName函数中，this指向的是f1对象。因此可以通过this.name获取f1.name的值。
+    其实，不仅仅是构造函数的prototype，即便是在整个原型链中，this代表的也都是当前对象的值。
+
+箭头函数
+    特性：
+    ①没有自己的this，arguments，super或new.target
+    ②箭头函数不会创建自己的this,它只会从自己的作用域链的上一层继承this
+
+    注意：
+    函数体内{} 用var定义的变量是局部变量（函数体作用域），不使用var定义的变量是全局变量（this指向window）
+    参数括号内定义的变量是局部变量（this指向window）
+    
+    优点：
+    ①函数语法更简短，可以省略了function，return关键字和大括号
+    ②没有单独的this（自动绑定this）
+
+    缺点
+    ①不够语义化
+    ②不能用call,apply,bind改变this指向，只能传递参数，第一个参数被忽略
+    ③不能new,不能用作构造函数。（箭头函数不能用作构造器，和 new一起用会抛出错误）
+    ④如果返回一个json对象，需要用（）包括起来
+    ⑤箭头函数没有prototype属性
+
+防抖和节流
+/*
+ * 防抖 Debounce 一段时间内没有新的操作才执行最后一个事件流，当中如有其他操作则重新计时
+ * @param {*} func 需要防抖的方法
+ * @param {*} wait 延迟时间
+*/
+    ①如果短时间内大量触发同一事件，只会执行一次函数
+    function debounce(func, wait){
+        let timeout;
+        return function(){
+        const context = this;
+        const args = arguments;
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            func.apply(context, args)
+        },wait);
+        }
+    }
+
+    ②如果短时间内大量触发同一事件，根据固定时间间隔一定会执行一次
+    function throttle (func, wait) {
+        let timeout;
+        return function(){
+            const context = this;
+            const args = arguments;
+            if(!timeout){
+                timeout = setTimeout(() => {
+                    timeout = null;
+                    func.apply(context,args);
+                },wait)
+            }
+        }
+    }
+
+    function throttle (func, wait){
+        let pre = 0;
+        return function(){
+          const context = this;
+          const args = arguments;
+          let now = Date.now();
+          if (now - pre >= wait){
+            func.apply(context, args);
+            pre = Date.now();
+          }
+        }
+    }
+
+应用：
+搜索框input事件，例如要支持输入实时搜索可以使用节流方案（间隔一段时间就必须查询相关内容
+或者实现输入间隔大于某个值（如500ms），就当做用户输入完成（只需要判断最后一次的变化情况）开始搜索。
+
+去重
+    ①[...new Set(array)]
+    ②Array.from(new Set(array))
+        const array = [1, 1, 2, 3, 5, 5, 1] 
+        Array.from(new Set(array)) //[1, 2, 3, 5]
+
+    ③array.filter((arr, index) => array.indexOf(arr) === index)
+    注意：indexOf()方法将返回数组中第一个出现的数组项。每次迭代中将indexOf()方法返回的索引与
+    当前索引进行比较，以确定当前项是否重复。
+    ④
+        function norepeat(arr){
+            var newarr = [];
+            arr.forEach(item => {
+                if(newarr.indexOf(item) === -1){
+                    newarr.push(a[i]);
+                }
+            })
+            return newarr;
+        }
+    ⑤var myOrderedArray = myArray.reduce(function (accumulator, currentValue) {
+        if (accumulator.indexOf(currentValue) === -1) {
+          accumulator.push(currentValue);
+        }
+        return accumulator
+      }, [])
+
+reduce
+arr.reduce(callback(accumulator, currentValue[, index[, array]])[, initialValue])
+执行数组中每个值的函数4个参数：累计器、当前值、当前索引、数组
+reduce 可以将数组中的元素通过回调函数最终转换为一个值。
+
+reduce实现map
+    const arr = [1, 2, 3]
+    const mapArray = arr.map(value => value * 2)
+    const reduceArray = arr.reduce((acc, current) => {
+        acc.push(current * 2)
+        return acc
+    }, [])
+    console.log(mapArray, reduceArray) // [2, 4, 6]
+
+map:将每个元素拿出来做一些变换然后放入到新的数组中
+filter: 在遍历数组的时候将返回值为 true 的元素放入新数组
+
+拍平多维数组
+①
+function flattenArray(arr) { 
+    const flattened = [].concat(...arr); 
+    return flattened.some(item => Array.isArray(item)) ? flattenArray(flattened) : flattened; 
+}
+②
+function flatten(arr) {
+    return arr.reduce(function (prev, next) {
+        return prev.concat(Array.isArray(next) ? flatten(next) : next)
+    }, [])
+}
+③
+[1, 2, [3, [4]]].flat(2) // [1, 2, 3, 4]
+存在兼容性问题
+
+用递归实现10的阶乘 10*9*8*7*......*2*1		
+    function fn(n){
+        if(n == 1){
+            return 1;
+        }
+        return fn(n-1)*n;
+    }
+    fn(4);
+			
+		
+利用递归求某一位的斐波那契数列（1，1，2，3，5，8，13，21，34，55，89...）	
+    function fn(n){
+        if(n == 1 || n == 2){
+            return 1;
+        }
+        return fn(n-1) + fn(n-2);
+        <!-- 利用arguments实现波那契数列 -->
+        <!-- return arguments.callee(n-1) + arguments.callee(n-2); -->
+    }
+	console.log(fn(37));
+		
+冒泡排序
+①前一项和后一项比较，前一项大，前一项和后一项交换位置。反之不变。
+②依次往下比。直到最大的数跑到最右边，然后进行第二轮比较。
+function BubbleSort(arr){
+    for(var i = 0; i < arr.length; i++){//第一层寻交换控制比较多少轮
+        for(var j = 0; j < arr.length - 1 - i; i++){//第二层循环用于每一轮的比较
+            if(arr[j] > arr[j+1]){
+                var temp = arr[j];
+                arr[j] = arr[j+1];
+                arr[j+1] = temp;
+            }
+        }
+    }
+    return arr;
+}
+
+
+选择排序
+①第一轮，找出数组中最小的数，将第一项和最小的数互换位置。
+②第二轮找到除第一项最小的数，和第二项互换位置，依次类推
+function selectSort(arr){
+    for (var i = 0; i < arr.length-1; i++) {
+        for (var j = i+1; j < arr.length; j++) {
+            if(arr[i] > arr[j]){
+                var temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
+    }
+    return arr;
+}
+
+
+
+defer与async的区别是：
+①defer是“渲染完再执行”,async是“下载完就执行”。
+注释：
+    defer要等到整个页面在内存中正常渲染结束（DOM 结构完全生成，以及其他脚本执行完成），才会执行；
+    async一旦下载完，渲染引擎就会中断渲染，执行这个脚本以后，再继续渲染。
+
+②如果有多个defer脚本，会按照它们在页面出现的顺序加载，而多个async脚本是不能保证加载顺序的。
+
+扩展：浏览器对于带有type="module"的‘<script></script>’，都是异步加载，不会造成堵塞浏览器，
+即等到整个页面渲染完，再执行模块脚本，等同于打开了‘<script></script>’标签的defer属性。
+      
+eval
+作用：eval(string) 执行一段JavaScript代码字符串，代码是可执行语句或者字符串都会被执行。
+
+注意：
+eval 也存在安全问题，因为它会执行任意传给它的代码， 在代码字符串未知或者是来自一个不信任的源时，
+绝对不要使用 eval 函数。
+
+
+
+
+
+
+commonjs
+webpack
+react hooks
+

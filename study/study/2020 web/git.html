@@ -1,0 +1,20 @@
+合并多次提交
+    ①git log //查看log
+    ②git rebase -i HEAD~2 //对最近的两次commit进行rebase操作
+    ③将需要合并的commit 内容前面的pick改为squash
+    ④保存退出 push -f
+
+cherrypick
+    使用场景:
+    当我们需要在本地合入其他分支的提交时，如果我们不想对整个分支进行合并，而是只想将某一次提交合入到
+    本地当前分支上，那么就要使用git cherry-pick了
+
+    ①获取需要合并的分支的某一次提交的commitid
+    ②本地分支执行git cherry-pick 2555c6e
+    ③存在冲突就解决冲突再提交
+
+git log: 显示所有提交过的版本信息
+git reflog:查看所有分支的所有操作记录（包括已经被删除的 commit 记录和 reset 的操作）
+git reset --hard HEAD版本号 回退
+git commit --amend命令把新的内容添加到之前的commit里面
+

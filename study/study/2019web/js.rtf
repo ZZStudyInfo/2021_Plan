@@ -1,0 +1,118 @@
+{\rtf1\ansi\ansicpg936\cocoartf2509
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset134 PingFangSC-Regular;}
+{\colortbl;\red255\green255\blue255;\red52\green52\blue52;\red251\green2\blue7;\red52\green52\blue52;
+\red255\green255\blue255;\red255\green255\blue255;}
+{\*\expandedcolortbl;;\csgray\c26515;\cssrgb\c100000\c14913\c0;\csgray\c26515;
+\cssrgb\c100000\c100000\c100000;\cssrgb\c100000\c100000\c100000;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs26 \cf2 js\
+	es6:\
+		1.\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fd(callback)\'ba\'cdpromise\
+		\cf3 \'bb\'d8\'b5\'f7\'ba\'af\'ca\'fd\cf2 \'a3\'ba\
+			ajax(url, () => \{\
+				//\'b4\'a6\'c0\'ed\'c2\'df\'bc\'ad\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf4 				ajax(url1, () => \{\
+					ajax(url2, () => \{\
+				\
+					\})\
+				\})\cf2 	\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf2 			\})\
+		\'c8\'b1\'b5\'e3\'a3\'ba\'a2\'d9\'b2\'bb\'c0\'fb\'d3\'da\'d4\'c4\'b6\'c1\'ba\'cd\'ce\'ac\'bb\'a4 \'a2\'da\'c7\'b6\'cc\'d7\'ba\'af\'ca\'fd\'b4\'e6\'d4\'da\'f1\'ee\'ba\'cf\'a3\'ac\'d2\'bb\'b5\'a9\'d3\'d0\'cb\'f9\'b8\'c4\'b6\'af\'a3\'ac\'be\'cd\'bb\'e1\'c7\'a3\'d2\'bb\'b7\'a2\'b6\'af\'c8\'ab		\'c9\'ed\'a3\'bb \'a2\'db\'c7\'b6\'cc\'d7\'ba\'af\'ca\'fd\'b6\'e0\'a3\'ac\'c4\'d1\'d2\'d4\'b4\'a6\'c0\'ed\'b4\'ed\'ce\'f3 \'a2\'dc\'b2\'bb\'d3\'c3\'ca\'b9\'d3\'c3 try catch\'b2\'b6\'bb\'f1\'b4\'ed\'ce\'f3\'a3\'ac\'b2\'bb\'c4\'dc\'d6\'b1\'bd\'d3return\
+		\cf3 promise\cf2 :\
+		\'cc\'d8\'d0\'d4\'a3\'ba\'a2\'d9\'d7\'b4\'cc\'ac\'b2\'bb\'ca\'dc\'c6\'e4\'cb\'fb\'b2\'d9\'d7\'f7\'d3\'b0\'cf\'ec\'a3\'a8\'b3\'fd\'c1\'cb\'d2\'ec\'b2\'bd\'b2\'d9\'d7\'f7\'b5\'c4\'bd\'e1\'b9\'fb\'a3\'a9\'a1\'a33\'b8\'f6\'d7\'b4\'cc\'ac\'a3\'ba pedding/				fulfilled/rejected\
+			  \'a2\'da\'d7\'b4\'cc\'ac\'d2\'bb\'b5\'a9\'b8\'c4\'b1\'e4\'be\'cd\'b2\'bb\'bb\'e1\'d4\'d9\'b1\'e4\'a3\'a8\'c4\'fd\'b9\'cc\'a3\'a9\'a1\'a3pedding--fulfilled/rejected\
+		\'d3\'c5\'b5\'e3\'a3\'ba\
+		\'c8\'b1\'b5\'e3\'a3\'ba\'a2\'d9\'d2\'bb\'b5\'a9\'bd\'a8\'c1\'a2promise\'a3\'ac\'ce\'de\'b7\'a8\'c8\'a1\'cf\'fb\
+			  \'a2\'da\'b4\'ed\'ce\'f3\'d0\'e8\'d2\'aa\'cd\'a8\'b9\'fd\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fdcatch\'c0\'b4\'b2\'b6\'bb\'f1, promise\'c4\'da\'b2\'bf\'b4\'ed\'ce\'f3\'b2\'bb\'bb\'e1\'d3\'b0\'cf\'ec\'cd\'e2\'b2\'bf\'b4\'fa\'c2\'eb\'a3\'ac\'b3\'d4\'b5\'f4\'b4\'ed\'ce\'f3\
+			  \'a2\'db\'b5\'b1\'b4\'a6\'d3\'dapedding\'d7\'b4\'cc\'ac\'a3\'ac\'ce\'de\'b7\'a8\'b5\'c3\'d6\'aa\'bd\'f8\'d5\'b9\'b5\'bd\'c4\'c4\'b8\'f6\'bd\'d7\'b6\'ce\'a3\'ac\'b8\'d5\'b8\'d5\'bf\'aa\'ca\'bc\'bb\'f2\'bc\'b4\'bd\'ab\'cd\'ea\'b3\'c9\
+			\'c8\'f4\'ca\'c2\'bc\'fe\'b2\'bb\'b6\'cf\'b7\'b4\'b8\'b4\'b7\'a2\'c9\'fa\'a3\'ac \'ca\'b9\'d3\'c3stream\'c4\'a3\'ca\'bd\'b1\'c8\'b2\'bf\'ca\'f0promise\'ba\'c3\
+		\'ca\'b9\'d3\'c3\'a3\'ba\
+		const promise = new Promise(function(resolve, reject)\{\
+			\'a1\'adsome code\
+			if(\'d2\'ec\'b2\'bd\'b2\'d9\'d7\'f7\'b3\'c9\'b9\'a6)\{\
+			  resolve(res)\
+			  console.log(res) \
+\
+			\'d7\'ee\'ba\'c3\'a3\'ba return resolve(res)\
+			cosole.log(res) //\'ba\'f3\'c3\'e6\'d3\'ef\'be\'e4\'b2\'bb\'bb\'e1\'d6\'b4\'d0\'d0\
+			\} else \{\
+			   reject(res)\
+			\}\
+		\})\
+		\
+		\'d7\'a2\'a3\'ba \
+		\'a2\'d9Promise\'b9\'b9\'d4\'ec\'ba\'af\'ca\'fd\'bd\'d3\'ca\'d5\'d2\'bb\'b8\'f6\'ba\'af\'ca\'fd\'d7\'f7\'ce\'aa\'b2\'ce\'ca\'fd\'a3\'ac\'b8\'c3\'ba\'af\'ca\'fd\'b5\'c4\'c1\'bd\'b8\'f6\'b2\'ce\'ca\'fd\'b7\'d6\'b1\'f0\'ca\'c7resolve\'ba\'cd		rejected,\'b6\'bc\'ca\'c7\'ba\'af\'ca\'fd(js\'d2\'fd\'c7\'e6\'cc\'e1\'b9\'a9)\
+		\'a2\'da\cf4 resolve/reject\'b2\'bb\'bb\'e1\'d6\'d5\'d6\'b9Pomise\'b2\'ce\'ca\'fd\'ba\'af\'ca\'fd\'b5\'c4\'d6\'b4\'d0\'d0\'b2\'a2\'c7\'d2console.log(res)\'bb\'e1\'ca\'d7\'cf\'c8\'b4\'f2\'d3\'a1\'b3\'f6		\'c0\'b4\'a3\'ac\'d2\'f2\'ce\'aaresolve\'d4\'da\'b1\'be\'c2\'d6\'ca\'b1\'bc\'e4\'d1\'ad\'bb\'b7\'b5\'c4\'c4\'a9\'ce\'b2\'d6\'b4\'d0\'d0\'a3\'ac\'d7\'dc\'ca\'c7\'cd\'ed\'d3\'da\'b1\'be\'c2\'d6\'d1\'ad\'bb\'b7\'b5\'c4\'cd\'ac\'b2\'bd\'c8\'ce\'ce\'f1\cf2 \
+		\'a2\'db\'b5\'f7\'d3\'c3\cf4 esolve/reject\'d6\'ae\'ba\'f3Promise\'b5\'c4\'ca\'b9\'c3\'fc\'be\'cd\'cd\'ea\'b3\'c9\'c1\'cb\'a3\'ac\'ba\'f3\'d0\'f8\'b2\'d9\'d7\'f7\'d3\'a6\'b8\'c3\'b7\'c5then\'b7\'bd\'b7\'a8\'a3\'ac\'cb\'f9\'d2\'d4		\'bc\'d3\'c9\'cfreturn\'d3\'ef\'be\'e4\
+		\
+		\'b7\'bd\'b7\'a8\'a3\'ba\
+		Promise.prototype.then()\cf2 \
+		promise.then(function(value)\{ \}, function(error)\{ \})\
+		\'d7\'a2\'a3\'ba\'a2\'d9\'d7\'f7\'d3\'c3\'ca\'c7\'ce\'aaPromise\'ca\'b5\'c0\'fd\'cc\'ed\'bc\'d3\'d7\'b4\'cc\'ac\'b8\'c4\'b1\'e4\'ca\'b1\'b5\'c4\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fd\
+			\'a2\'dathen\'b7\'bd\'b7\'a8\'b7\'b5\'bb\'d8\'b5\'c4\'ca\'c7\'d2\'bb\'b8\'f6\'d0\'c2\'b5\'c4Promise\'ca\'b5\'c0\'fd\'a3\'ac\'c1\'b4\'ca\'bd\'b5\'f7\'d3\'c3\
+			\'d7\'a2\'a3\'ba\'b5\'da\'d2\'bb\'b8\'f6\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fdreturn\'b7\'b5\'bb\'d8\'b5\'c4\'bd\'e1\'b9\'fb\'d7\'f7\'ce\'aa\'b2\'ce\'ca\'fd\'a3\'ac\'b4\'ab\'c8\'eb\'b5\'da\'b6\'fe\'b8\'f6\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fd\
+		\
+		\cf4 Promise.prototype.catch()\
+		p.then(val => console.log(\'a1\'aefulfilled\'a1\'af, val))\
+		  .catch(err =>  console.log(\'a1\'aerejected\'a1\'af, err))\
+            const p = new Promise(function(resolve, reject)\{\
+			reject(new Error(err)) // reject\'b5\'c8\'cd\'ac\'c5\'d7\'b3\'f6\'b4\'ed\'ce\'f3\
+			// try\{ throw new Error(\'a1\'aetest\'a1\'af) \} catch \{ e => reject(e)\}\
+		\})\cf2 \cb5 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec6 \shad\shadx0\shady-20\shadr0\shado76 \shadc0 \
+\kerning1\expnd0\expndtw0 \outl0\strokewidth0 \shad0 \
+\cf4 \cb1 		\'a2\'d9\'d2\'ec\'b2\'bd\'bd\'e1\'b9\'fb\'ce\'aarejected\'a3\'ac\'be\'cd\'bb\'e1\'b5\'f7\'d3\'c3catch\'b7\'bd\'b7\'a8\'d6\'b8\'b6\'a8\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fd\'b4\'a6\'c0\'ed\'b4\'ed\'ce\'f3\
+		\'a2\'dacatch\'b7\'b5\'bb\'d8Promise\'b6\'d4\'cf\'f3\'a3\'ac \'b1\'a8\'b4\'ed\'bc\'cc\'d0\'f8\'d6\'b4\'d0\'d0\'ba\'f3\'c3\'e6\'b5\'c4then\'b5\'c4\'b7\'bd\'b7\'a8\
+  \
+		Promise.prototype.finally()\
+		\'a2\'d9\'b2\'bb\'d2\'c0\'c0\'b5Promise\'d6\'b4\'d0\'d0\'bd\'e1\'b9\'fb\'ba\'cd\'d7\'b4\'cc\'ac\'a3\'ac\'b6\'bc\'bb\'e1\'d6\'b4\'d0\'d0finally\'b7\'bd\'b7\'a8\'d6\'b8\'b6\'a8\'b5\'c4\'bb\'d8\'b5\'f7\'ba\'af\'ca\'fd\cf2 \
+	\
+		\cf4 Promise.resolve()\
+		\'a2\'d9\'b0\'d1\'cf\'d6\'d3\'d0\'b6\'d4\'cf\'f3\'d7\'aa\'ce\'aaPromise\'b6\'d4\'cf\'f3\
+		\'a2\'da\'b7\'bd\'b7\'a8\'d4\'da\'b1\'be\'c2\'d6\'d1\'ad\'bb\'b7\'bd\'e1\'ca\'f8\'ca\'b1\'d6\'b4\'d0\'d0\'a3\'ac\'b6\'f8\'b2\'bb\'ca\'c7\'d4\'da\'cf\'c2\'d2\'bb\'c2\'d6\'ca\'b1\'bc\'e4\'d1\'ad\'bb\'b7\'bf\'aa\'ca\'bc\'ca\'b1\'d6\'b4\'d0\'d0\
+		Promise.resolve(\'a1\'aefoo\'a1\'af) === new Promise( resolve => resolve(\'a1\'aefoo\'a1\'af))\
+		Promise.resolve().then (res => \'a1\'ad)\
+\cf2 \
+		\cf4 Promise.rejected()\
+		\'a2\'d9\'b2\'ce\'ca\'fd\'d7\'f7\'ce\'aareject\'b5\'c4\'c0\'ed\'d3\'c9\'a3\'ac\'b1\'e4\'b3\'c9\'ba\'f3\'d0\'f8\'b7\'bd\'b7\'a8\'b5\'c4\'b2\'ce\'ca\'fd\
+\
+		Promise.try()\
+		\'ca\'b9\'d3\'c3\'b3\'a1\'be\'b0\'a3\'ba\'b2\'bb\'d6\'aa\'b5\'c0\'bb\'f2\'d5\'df\'b2\'bb\'cf\'eb\'c7\'f8\'b7\'d6\'ba\'af\'ca\'fd\'ca\'c7\'cd\'ac\'b2\'bd\'bb\'b9\'ca\'c7\'d2\'ec\'b2\'bd\'a3\'ac\'b5\'ab\'ca\'c7\'cf\'eb\'d3\'c3Promise\'b4\'a6\'c0\'ed\'cb\'fc\'a3\'ac\'be\'cd		\'bf\'c9\'d2\'d4\'d3\'c3then\'b7\'bd\'b7\'a8\'d6\'b8\'b6\'a8\'cf\'c2\'d2\'bb\'b2\'bd\'c1\'f7\'b3\'cc\'a3\'ac\'d3\'c3catch\'b7\'bd\'b7\'a8\'b4\'a6\'c0\'ed\'ba\'af\'ca\'fd\'c5\'d7\'b3\'f6\'b5\'c4\'b4\'ed\'ce\'f3\
+\cf2 		Promise.resolve().then(f) //\'c8\'b1\'b5\'e3\'a3\'ba\'c8\'f4f\'ca\'c7\'cd\'ac\'b2\'bd\'ba\'af\'ca\'fd\'a3\'ac\'cb\'fc\'bb\'e1\'d4\'da\'b1\'be\'c2\'d6\'ca\'c2\'bc\'fe\'d1\'ad\'bb\'b7\'b5\'c4\'c4\'a9\'ce\'b2\'d6\'b4\'d0\'d0\
+		const f = () => console.log(\'a1\'aenow\'a1\'af)\
+		(async () =>  fn())().then().catch() //then\'d6\'b8\'b6\'a8\'cf\'c2\'d2\'bb\'b2\'bd\'a3\'accatch\'b2\'b6\'bb\'f1\'b4\'ed\'ce\'f3\
+		(() => new Promise(resolve => resolve(f()) ))()\
+		Promise.try(() => f())\
+\
+\
+		Promise.all()\
+		const p = Promise.all([\cf4 p1,p2, p3\cf2 ])\
+		\'a2\'d9\'bd\'d3\'ca\'dc\'d2\'bb\'b8\'f6\'ca\'fd\'d7\'e9\'d7\'f7\'ce\'aa\'b2\'ce\'ca\'fd\'a3\'ac\'b2\'a2\'c7\'d2\'b6\'bc\'ca\'c7Promise\'ca\'b5\'c0\'fd\'a3\'ac \'bb\'f2\'b2\'ce\'ca\'fd\'be\'df\'d3\'d0Iterator\'bd\'d3\'bf\'da\
+		\'a2\'dap 123\'b6\'bcfulfilled\'b2\'c5\'b3\'c9\'b9\'a6\'a3\'ac \'d2\'bb\'b8\'f6rejected\'be\'cd\'bb\'e1\'b5\'bc\'d6\'c2p\'c5\'d7\'b4\'ed\
+		\'a2\'db\'cf\'c8\'b5\'f7\'d3\'c3\'b2\'ce\'ca\'fd\'ca\'b5\'c0\'fd\'b5\'c4catch\'a3\'ac\'c3\'bb\'d3\'d0\'b2\'c5\'b5\'f7\'d3\'c3\cf4 Promise.all()\'b5\'c4catch\'b7\'bd\'b7\'a8\
+\
+		Promise.race()\
+		\'cd\'acall()\'a3\'ac\'b2\'bb\'cd\'ac\'b5\'c4\'ca\'c7\'d6\'bb\'d2\'aa\'d3\'d0\'d2\'bb\'b8\'f6\'b2\'ce\'ca\'fd\'ca\'b5\'c0\'fd\'d7\'b4\'cc\'ac\'c2\'ca\'cf\'c8\'b8\'c4\'b1\'e4\'a3\'ac\'b8\'c3\'ca\'b5\'c0\'fd\'b5\'c4\'b7\'b5\'bb\'d8\'d6\'b5\'be\'cd\'b4\'ab\'b8\'f8p\'b5\'c4\'bb\'d8		\'b5\'f7\'ba\'af\'ca\'fd\
+\
+		Promise.allSettled()\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf4 		const p = Promise.allSettled([p1,p2, p3])\
+		p.then(res => console.log(res) // [\{status, value/reson\}\{\}])\
+		const res = await Promise.allSettled([p1,p2, p3])\
+  		\'a2\'d9Promise.all()\'ce\'de\'b7\'a8\'c8\'b7\'b6\'a8\'cb\'f9\'d3\'d0\'c7\'eb\'c7\'f3\'b6\'bc\'bd\'e1\'ca\'f8\'c1\'cb\'a3\'ac Promise.allSettled()\'bf\'c9\'d2\'d4\
+\
+		Promise.any()\
+		\'cd\'acPromise.race()\'a3\'ac \'b2\'bb\'cd\'ac\'b5\'c4\'ca\'c7\'b2\'bb\'bb\'e1\'d2\'f2\'ce\'aaPromise\'b1\'e4\'b3\'c9rejected\'d7\'b4\'cc\'ac\'b6\'f8\'bd\'e1\'ca\'f8\
+\cf2 \
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+\cf2 \
+\
+\
+\
+\
+\
+}

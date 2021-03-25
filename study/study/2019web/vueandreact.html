@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/* 
+ 一、什么是 MVVM？比之 MVC 有什么区别？
+①传统的 MVC 架构通常是使用控制器更新模型。
+视图从模型中获取数据去渲染，当用户有输入时，会通过控制器去更新模型，并且通知视图进行更新。
+但控制器太臃肿
+M: 即Model,一般就是数据（本地数据，数据库数据）
+V: 即View,一般就是视图
+C: Control
+①在 MVVM 架构中，引入了 ViewModel 的概念。ViewModel 只关心数据和业务的处理，不关心 View 如何处理数据
+并且将可复用的逻辑放在一个 ViewModel 中，让多个 View 复用这个 ViewModel
+②以 Vue 框架来举例，ViewModel 就是组件的实例。
+View 就是模板，Model 的话在引入 Vuex 的情况下是完全可以和组件分离的。
+③通过 ViewModel 将视图中的状态和用户的行为分离出一个抽象，这才是 MVVM 的精髓。
+
+二、virtual DOM
+真正的 DOM 元素是非常庞大的，因为浏览器的标准就把 DOM 设计的非常复杂。
+当我们频繁的去做 DOM 更新，会产生一定的性能问题。
+而 Virtual DOM 就是用一个原生的 JS 对象去描述一个 DOM 节点，
+所以它比创建一个 DOM 的代价要小很多。在 Vue.js 中，Virtual DOM 是用 VNode 这么一个 Class 去描述的。
+
+三、路由:Hash 模式和History 模式
+①www.test.com/#/ 就是 Hash URL，
+当 # 后面的哈希值发生变化时，可以通过 hashchange 事件来监听到 URL 的变化，从而进行跳转页面，
+并且无论哈希值如何变化，服务端接收到的 URL 请求永远是 www.test.com。
+window.addEventListener('hashchange', () => {
+    // ... 具体逻辑
+  })
+③ Hash 模式相对来说更简单，并且兼容性也更好。Hash 模式只能更改哈希值，也就是字符串，无需后端配置
+  History 模式可以通过 API 添加任意类型的数据到历史记录中，（同源 URL）
+  History 模式在用户手动输入地址或者刷新页面的时候会发起 URL 请求，后端需要配置 index.html 页面用于匹配不到静态资源的时候
+
+*/
+</script>
+</html>

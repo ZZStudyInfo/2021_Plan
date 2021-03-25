@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>常用布局</title>
+    <div>
+
+    </div>
+</head>
+<body>
+    <script>
+//       function createObj(o) {
+//     function F(){}
+//     F.prototype = o;
+//     return new F();
+// }
+// 就是 ES5 Object.create 的模拟实现，将传入的对象作为创建的对象的原型。
+//       	//写出一个闭包，函数father里有一个局部变量a，在函数外全局状态能调用到，并每次累加
+// 		function father(){
+// 			var a =10;
+// 			return function(){
+// 				a++;
+// 				return a;
+// 			}
+// 		}
+// //		console.log(a)
+// 		var fn=father();
+// 		console.log(fn()); 11
+// 		console.log(fn()); 12
+// 		console.log(fn());13
+// 		console.log(fn());
+// 		//嵌套一个作用域，将外部的局部变量存起来
+    /* 
+    一、六种原始数据类型：
+    number,string, bolean,undefined,null,symbol
+
+    备注：
+    ①null不是对象类型，虽然 typeof null 会输出 object。这是 JS 存在的一个悠久 Bug。
+    000 开头代表是对象，然而 null 表示为全零，判断为 object 。
+    ②原始类型存储的是值，存在栈中，没有函数可调用，可用的原因是被强制转换成了相对应的对象。
+    ③JS 的 number 类型是浮点类型的，在使用中会遇到某些 Bug。0.1+0.2 ！= 0.3
+    ④string 类型是不可变的，无论你在 string 类型上调用何种方法，都不会对值有改变。
+    不可变，比较的是值
+
+     二、引用类型（objiect类型）
+     array, function, object ，date, regexp类型（正则表达式）
+     备注：
+     ①可变，比较的是引用的比较
+     ②引用类型存储的是地址（指针），存在堆中
+     ③引用类型作为参数传递，会有切断原型链问题
+
+     三、检测类型 
+     typeof
+     ①对于原始类型来说，除了 null 都可以显示正确的类型，null为object
+     ② 对于引用类型来说，除了函数都会显示 object
+     instanceof
+     ①简单说就是判断一个引用类型的变量具体是不是某种类型的对象
+     ({}) instanceof Object              // true
+    Instanceof运算符的第一个变量是一个对象，暂时称为A；第二个变量一般是一个函数，暂时称为B。
+    Instanceof的判断队则是：沿着A的__proto__这条线来找，
+    同时沿着B的prototype这条线来找，如果两条线能找到同一个引用，即同一个对象，那么就返回true。
+    如果找到终点还未重合，则返回false。
+    function myInstanceof(left, right) {
+      let prototype = right.prototype
+      left = left.__proto__
+      while (true) {
+        if (left === null || left === undefined)
+          return false
+        if (prototype === left)
+          return true
+        left = left.__proto__
+      }
+    }
+
+     四、类型转换
+     js类型转换只有三种情况，转换成boolean,number,string
+     ①在条件判断时，除了 undefined， null， false， NaN， ''， 0， -0，其他所有值都转为 true，包括所有对象。
+     ②对象先调用valueOf，tostring 若转换成基本类型，就返回转换的值
+
+     五、四则运算
+     除了加法的运算符来说，只要其中一方是数字，那么另一方就会被转为数字
+     'a' + + 'b' // -> "aNaN"
+      4 + [1,2,3] // "41,2,3"
+      4 * [] // 0
+      4 * [1, 2] // NaN
+
+      六、call,apply,bind的区别
+      ①call接受参数列表，apply接收数组，bind返回一个函数
+      let a = {
+    value: 1
+    }
+    function getValue(name, age) {
+        console.log(name)
+        console.log(age)
+        console.log(this.value)
+    }
+    Function.prototype.myCall = function (context) {
+      //第一个参数为调用call方法的函数中的this指向 为对象a
+      var context = context || window;
+      //此处this是指调用myCall的function
+      context.fn = this
+      // 将 context 后面的参数取出来
+      var args = [...arguments].slice(1)
+      //执行这个函数，并返回结果
+      var result = context.fn(...args)
+      //将this指向销毁
+      delete context.fn
+      return result
+    }
+    Function.prototype.myApply = function (context) {
+      //第一个参数为调用call方法的函数中的this指向 为对象a
+      var context = context || window;
+      console.log(context,'context')
+      console.log(this,'this')
+      //此处this是指调用myCall的function
+      context.fn = this
+      var result
+      // 需要判断是否存储第二个参数
+      // 如果存在，就将第二个参数展开
+        if (arguments[1]) {
+          result = context.fn(...arguments[1])
+        } else {
+          result = context.fn()
+        }
+      //将this指向销毁
+      delete context.fn
+      return result
+    }
+    Function.prototype.myBind = function (context) {
+      if (typeof this !== 'function') {
+        throw new TypeError('Error')
+      }
+      var _this = this
+      console.log(this)
+      var args = [...arguments].slice(1)
+      // 返回一个函数
+      return function F() {
+        // 因为返回了一个函数，我们可以 new F()，所以需要判断
+        if (this instanceof F) {
+          return new _this(...args, ...arguments) 
+        }
+        return _this.apply(context, args.concat(...arguments))
+      }
+    }
+    // getValue.myBind(a, ['yck', '24'])()
+
+
+      七、深拷贝和浅拷贝
+        1.浅拷贝
+        ①let a = {
+            age: 1
+        }
+        let b = Object.assign({}, a)
+        a.age = 2
+        console.log(b.age) // 1
+        ②另外我们还可以通过展开运算符 ... 来实现浅拷贝
+        let a = {
+          age: 1
+        }
+        let b = { ...a }
+        a.age = 2
+        console.log(b.age) // 1
+
+        2、深拷贝
+         ①这个问题通常可以通过 JSON.parse(JSON.stringify(object)) 来解决。但遇到函数、undefined
+         symbol不能正常序列化，不能解决循环引用的对象。
+         ②
+          // 深拷贝函数
+    function deepClone(obj) {
+      function isObj(o) {
+        // return typeof o ==='object' || typeof o === 'function' && typeof o !== null
+        return  o instanceof Object
+      }
+      if (!isObj(obj)) {
+        throw new Error('非对象')
+      }
+      // 以上判断传入参数是否为object
+      let isArr = Array.isArray(obj)
+     
+    //  判断该object是否为数组的方法
+    //  ①对象 insratanceof Array(这个Object的原型链上能够找到Array构造函数的话，那么这个Object应该及就是一个数组，)
+    //  ②对象.constructor === Array(数组是有一个叫Array的函数实例化的。constructor属性是可以改写的)
+    //  ③Object.prototype.toString.call/apply(对象) === '[object Array]'; （每一个继承自Object的对象都拥有toString的方法。）
+    //  注：只有对象的toString方法会返回对象的类型，所以我们需要使用call或者apply方法来改变toString方法的执行上下文。
+    //  而数组和字符串自己的toString方法只会返回内容的字符串,需要注意改写Object原型链上的toString的情况
+    
+      // 判断传入参数是否为数组，用运算符展开
+      let newObj = isArr ? [...obj] : { ...obj }
+      console.log(newObj,'newobj')
+      //  Reflect.ownKeys如果是对象则返回['a', 'b'],,数组则返回index,长度为0返回length
+      Reflect.ownKeys(newObj).forEach(key => {
+        console.log(key,'key')
+        //遍历对象的key，判断key是否为对象，若是，继续进行深拷贝
+        newObj[key] = isObj(obj[key]) ? deepClone(obj[key]) : obj[key]
+      })
+      console.log(newObj)
+      return newObj
+    }
+    var zz  = {
+      a: 1,
+      b: {
+        c: 2
+      }
+    }
+    var xyh = [{a:1},2,{b:{c:1}}]
+    deepClone(xyh)
+
+      七、
+       实现异步的最核心原理，就是将callback作为参数传递给异步执行函数，当有结果返回之后再触发 callback执行
+       常用的异步操作：
+       ①网络请求 ajax.http.get
+       ②IO操作 如readFile readdir
+       ③定时函数 如setTimeout,setInterval
+
+      八、promise
+        ①Promise 虽然改变了 JS 工程师对于异步操作的写法，但是却改变不了 JS 单线程、异步的执行模式。
+        ②异步（promise）会吃掉错误
+        ③立即resolve的 Promise 对象，是在本轮“事件循环”（event loop）的结束时，而不是在下一轮“事件循环”的开始时。(Promise.reject()Promise.resolve() )
+        setTimeout(function () {
+          console.log('three');
+        }, 0);
+
+        Promise.resolve().then(function () {
+          console.log('two');
+        });
+
+        console.log('one');
+
+        // one
+        // two
+        // three
+        function loadImageAsync(url) {
+        return new Promise(function(resolve, reject) {
+          const image = new Image();
+
+          image.onload = function() {
+            resolve(image);
+          };
+
+          image.onerror = function() {
+            reject(new Error('Could not load image at ' + url));
+          };
+
+          image.src = url;
+        });
+      }
+      
+      九、async，await
+      var a = 0
+      var b = async () => {
+        a = a + await 10
+        console.log('2', a) // -> '2' 10
+        a = (await 10) + a
+        console.log('3', a) // -> '3' 20
+      }
+      b()
+      a++
+      console.log('1', a) // -> '1' 1
+      ①async-await方式
+      const readFileAsync = async function () {
+      const f1 = await readFilePromise('data1.json')
+      const f2 = await readFilePromise('data2.json')
+      const f3 = await readFilePromise('data3.json')
+      const f4 = await readFilePromise('data4.json')
+    }
+    ②Generator方式
+    co(function* () {
+    const r1 = yield readFilePromise('some1.json')
+    const r2 = yield readFilePromise('some2.json')
+    const r3 = yield readFilePromise('some3.json')
+    const r4 = yield readFilePromise('some4.json')
+    })
+  ③Promise方式
+  readFilePromise('some1.json').then(data => {
+    return readFilePromise('some2.json')
+    }).then(data => {
+        return readFilePromise('some3.json')
+    }).then(data => {
+        return readFilePromise('some4.json')
+    })
+    ④callback方式
+    fs.readFile('some1.json', (err, data) => {
+    fs.readFile('some2.json', (err, data) => {
+        fs.readFile('some3.json', (err, data) => {
+            fs.readFile('some4.json', (err, data) => {
+
+            })
+        })
+    })
+})
+      十、event loop
+      javascript是一门单线程语言
+      Event Loop是javascript的执行机制
+      所以 Event Loop 执行顺序如下所示：
+      执行宏任务 -->执行微任务 --->执行宏任务--->执行微任务 
+      首先执行同步代码，这属于宏任务
+      当执行完所有同步代码后，执行栈为空，查询是否有异步代码需要执行
+      执行所有微任务
+      当执行完所有微任务后，如有必要会渲染页面
+      然后开始下一轮 Event Loop，执行宏任务中的异步代码，也就是 setTimeout 中的回调函数
+
+      微任务包括 process.nextTick ，promise ，MutationObserver。
+
+      宏任务包括 script ， setTimeout ，setInterval ，setImmediate ，I/O ，UI rendering。
+      这里很多人会有个误区，认为微任务快于宏任务，其实是错误的。因为宏任务中包括了 script ，浏览器会先执行一个宏任务，接下来有异步代码的话才会先执行微任务。
+
+      十一、proxy
+      采用数据劫持结合发布者-订阅者模式的方式,
+      通过 Object.defineProperty() 来劫持各个属性的setter,getter,
+      在数据变动时发布消息给订阅者,触发相应监听回调。
+      //  Vue3.0 中将会通过 Proxy 来替换原本的 Object.defineProperty 来实现数据响应式
+      // 之所以 Vue3.0 要使用 Proxy 替换原本的 API 原因在于 Proxy 无需一层层递归为每个属性添加代理，
+      // 一次即可完成以上操作，性能上更好，并且原本的实现有一些数据更新不能监听到，
+      // 但是 Proxy 可以完美监听到任何方式的数据改变，唯一缺陷可能就是浏览器的兼容性不好了。
+      let onWatch = (obj, setBind, getLogger) => {
+      let handler = {
+        get(target, property, receiver) {
+          getLogger(target, property)
+          return Reflect.get(target, property, receiver)
+        },
+        set(target, property, value, receiver) {
+          setBind(value, property)
+          return Reflect.set(target, property, value)
+        }
+      }
+      // `obj` 代表需要添加代理的对象
+      // `handler` 用来自定义对象中的操作
+      return new Proxy(obj, handler)
+    }
+
+    let obj = { a: 1 }
+    let p = onWatch(
+      obj,
+      (v, property) => {
+        console.log(`监听到属性${property}改变为${v}`)
+      },
+      (target, property) => {
+        console.log(`'${property}' = ${target[property]}`)
+      }
+    )
+    p.a = 2 // 监听到属性a改变
+    p.a // 'a' = 2
+
+    十二、reduce实现map
+    const arr = [1, 2, 3]
+    const mapArray = arr.map(value => value * 2)
+    const reduceArray = arr.reduce((acc, current) => {
+      acc.push(current * 2)
+      return acc
+    }, [])
+    console.log(mapArray, reduceArray) // [2, 4, 6]
+      十三、防抖，节流
+      ①防抖
+       function debounce(func,wait,immediate) {
+       var timeout;
+
+       return function () {
+        var context = this;
+        var args = arguments;
+
+        if (timeout) clearTimeout(timeout);
+        //立即执行版的意思是触发事件后函数会立即执行，然后 n 秒内不触发事件才能继续执行函数的效果。
+        if (immediate) {
+            var callNow = !timeout;
+            timeout = setTimeout(function(){
+                timeout = null;
+            }, wait)
+            if (callNow) func.apply(context, args)
+        }
+        else {
+            timeout = setTimeout(function(){
+                func.apply(context, args)
+            }, wait);
+        }
+    }
+}
+每个一段时间只执行一次
+  function debounce(func, wait){
+      let timeout;
+      return function(){
+        const context = this;
+        const args = arguments;
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          func.apply(context, args)
+        },wait);
+      }
+  }
+    函数节流 
+    每隔一段时间时间一定会执行一次
+    function throttle (func, wait){
+      let pre = 0;
+      return function(){
+        const context = this;
+        const args = arguments;
+        let now = Date.now();
+        if (now - pre >= wait){
+          func.apply(context, args);
+          pre = Date.now();
+        }
+      }
+    }
+    function throttle  (func, wait) {
+      let timeout;
+      return function(){
+        const context = this;
+        const args = arguments;
+        if(!timeout){
+          timeout = setTimeout(() => {
+            timeout = null;
+            func.apply(context,args);
+          },wait)
+        }
+      }
+    }
+
+
+      十二、模块化
+
+      十三、垃圾回收机制
+      ①标记清除法
+      给存储在内存中的所有变量加上标记，去掉被引用的变量和环境中的变量的标记，
+      删除再被标记的变量，原因是环境中无法再访问到这些变量了
+      最后垃圾收集器销毁标记的变量并回收它们所占用的空间
+      ②引用计数法
+      跟踪记录每个变量被引用的次数，当应用次数为0，则回收 ，循环引用不会被清楚，全局变量和对象，都可以手动解除引用，
+      避免内存泄露
+      解除引用是让值脱离执行环境，以便垃圾收集器下次运行时将其回收
+
+      六、this
+      ①普通函数
+       除了new的方式 谁调用它this就指向谁 例：不作为obj.fn()调用 就会指向windows,函数f在obj中定义仍然指向windows
+       new的方式 this指向实例
+      ②箭头函数
+      指向包裹箭头函数的第一个普通函数中的this
+      ③bind,call，apply
+      this是第一个参数
+      ④如上代码，在Fn.prototype.getName函数中，this指向的是f1对象。因此可以通过this.name获取f1.name的值。
+      其实，不仅仅是构造函数的prototype，即便是在整个原型链中，this代表的也都是当前对象的值。
+
+      七、执行上下文(环境)
+      在执行代码之前，把将要用到的所有的变量都事先拿出来，有的直接赋值了，有的先用undefined占个空
+      这种数据准备情况称之为执行上下文环境。
+
+      javascript在执行一个代码段之前，都会进行这些“准备工作”来生成执行上下文。
+      这个“代码段”其实分三种情况——全局代码，函数体，eval代码。
+      全局代码
+      ①变量，函数表达式--变量声明，默认赋值为undefine
+      ②this--赋值
+      ③函数声明--赋值
+      函数体
+      ①参数--赋值
+      ②arguments--赋值
+      ③自由变量的取值作用域
+      备注：函数每被调用一次，都会产生一个新的执行上下文环境。
+      函数在被定义的时候就已经确定了函数体内部自由变量的作用域。
+      要到创建fn函数的那个作用域中取——无论fn函数将在哪里调用，一直往上找，直到全局
+      var a = 10;
+      function fn() {
+        console.log(a) //a是自由变量 函数创建时就确定了它的作用域
+      }
+      function  bar(fn) {
+        var a = 20
+        fn()
+      }
+      bar(fn) //打印了10，而不是20
+
+      执行上下文栈是一个压栈出栈的过程
+               压栈 函数上下文环境 出栈（销毁函数上下文环境）
+    全局上下文环境-->全局上下文环境  ---> 全局上下文环境
+
+    八、作用域 执行上下文栈
+    js除了全局作用域，块级作用，只有函数可以创建作用域
+    ①作用域是在函数创建时就确定了，作用域中变量的值是在执行过程中产生的确定的。
+    ②作用域只是一个“地盘”，一个抽象的概念，其中没有变量。要通过作用域对应的执行上下文环境来获取变量的值
+    ③同一个作用域下，不同的调用会产生不同的执行上下文环境，继而产生不同的变量的值
+    如果要查找一个作用域下某个变量的值，就需要找到这个作用域对应的执行上下文环境，再在其中寻找变量的值
+
+    // 作用域在函数定义时就已经确定了。而不是在函数调用时确定。
+    var b = 10,
+        c = 20; //全局作用域  全局上下文环境 b=10,c=20,this=windows...
+    function fn(x) { //fn作用域 生成调用fn(10)的上下文环境 压栈
+      var b = 100,
+          c = 200;
+      function bar(x) { //bar作用域 
+                        //生成调用bar(100)的上下文环境 压栈 生成调用bar(200)的上下文环境 压栈                  
+        var b = 1000,
+            c = 2000;
+
+      }
+      bar(100)
+      bar(200)
+    }
+    fn(=)
+
+    九、闭包
+    两种情况--函数作为返回值，函数作为参数传递
+    ①当一个函数被调用完成之后，其执行上下文环境将被销毁，其中的变量也会被同时销毁。
+    函数调用完成之后，其执行上下文环境不会接着被销毁。这就是需要理解闭包的核心内容
+     // 第一，函数作为返回值
+    function fn() {  //fn上下文环境不能销毁，还依旧存在于上下文环境栈中，因此闭包会增加栈开销
+      var max = 10
+
+      return function bar(x){
+        if(x > max) {
+          console.log(x);
+        }
+      }
+    }
+    var f1 = fn();//bar函数作为返回值，赋值给f1,跨作用域取值max
+    f1()
+    // 第二，函数作为参数传递
+    var max = 10,
+    fn = function(x) {
+      if (x > max) {
+        console.log(x)
+      }
+    }
+    (function (fn) {
+      var max = 100
+      fn(15) //max取值为10
+    })(fn)
+
+    十、原型链
+    ①一切（引用类型）都是对象，对象是属性的集合
+    ②对象都是通过函数创建的，而函数却又是一种对象
+    ③每个函数都有一个属性叫做prototype原型，属性值是一个对象，即原型对象，默认一个constructor属性值，指向这个函数本身
+    ④每个对象都有一个--proto--指向创建该对象的函数的prototype
+    ⑤函数的prototype是一个对象 ，它的--proto--和普通对象一样，指向Object.prototype
+    ⑥函数由函数创建，Object.prototyp的--proto--指向null
+    ⑦hasOwnProperty，判断是否属于对象私有属性
+    对象的原型链是沿着__proto__这条线走的，因此在查找f1.hasOwnProperty属性时，
+    就会顺着原型链一直查找到Object.prototype。
+    总结：其实原型链就是多个对象通过 __proto__ 的方式连接了起来。
+    为什么 obj 可以访问到 valueOf 函数，就是因为 obj 通过原型链找到了 valueOf 函数。
+
+    对于这一小节的知识点，总结起来就是以下几点：
+    Object 是所有对象的爸爸，所有对象都可以通过 __proto__ 找到它
+    Function 是所有函数的爸爸，所有函数都可以通过 __proto__ 找到它
+    函数的 prototype 是一个对象
+
+    对象的 __proto__ 属性指向原型， __proto__ 将对象和原型连接起来组成了原型链
+
+    通过obj的--proto--找到原型对象，发现constructor ，
+    打开constructor属性我们又可以发现其中还有一个 prototype 属性，
+    并且这个属性对应的值和先前我们在 __proto__ 中看到的一模一样。
+    所以我们又可以得出一个结论：
+    原型的 constructor 属性指向构造函数，构造函数又通过 prototype 属性指回原型，
+    但是并不是所有函数都具有这个属性，Function.prototype.bind() 就没有这个属性。
+    十一、继承（常用继承）
+    ①组合继承
+    function Parent(value) {
+      this.val = value
+    }
+    Parent.prototype.getValue = function() {
+      console.log(this.val)
+    }
+    function Child(value) {
+      Parent.call(this, value)
+    }
+    Child.prototype = new Parent()
+
+    const child = new Child(1)
+
+    child.getValue() // 1
+    child instanceof Parent // true
+
+    ②寄生组合继承
+    function Parent(value) {
+      this.val = value
+    }
+    Parent.prototype.getValue = function() {
+      console.log(this.val)
+    }
+
+    function Child(value) {
+      Parent.call(this, value)
+    }
+    Child.prototype = Object.create(Parent.prototype, {
+      constructor: {
+        value: Child,
+        enumerable: false,//可枚举性
+        writable: true, //可写性
+        configurable: true //可配置性
+        // Object.create/defineProperty默认false
+      }
+    })
+
+    const child = new Child(1)
+
+    child.getValue() // 1
+    child instanceof Parent // true
+
+    ③Class 继承
+    class Parent {
+      constructor(value) {
+        this.val = value
+      }
+      getValue() {
+        console.log(this.val)
+      }
+    }
+    class Child extends Parent {
+      constructor(value) {
+        super(value)
+        this.val = value
+      }
+    }
+    let child = new Child(1)
+    child.getValue() // 1
+    child instanceof Parent // true
+
+    十二、new
+    ①创建一个空对象
+    ②获取构造函数
+    ③设置空对象原型
+    ④绑定this并执行构造函数
+    ⑤确认返回值为对象
+    function create(Con, ...args) {
+      const obj ={}
+      Object.setPrototypeOf(obj,Con.prototype)
+      // 构造函数如果返回值为对象，那么这个返回值会被正常使用
+      let result = Con.apply(obj, args)
+      return result instancrof Object ? result : obj
+
+    }
+   ① 首先函数接受不定量的参数，第一个参数为构造函数，接下来的参数被构造函数使用
+  ②然后内部创建一个空对象 obj
+  ③因为 obj 对象需要访问到构造函数原型链上的属性，所以我们通过 setPrototypeOf 将两者联系起来。
+  这段代码等同于 obj.__proto__ = Con.prototype
+  ④将 obj 绑定到构造函数上，并且传入剩余的参数
+  ⑤判断构造函数返回值是否为对象，如果为对象就使用构造函数返回的值，否则使用 obj，
+  这样就实现了忽略构造函数返回的原始值
+
+  function Test(name, age) {
+  this.name = name
+  this.age = age
+  }
+  Test.prototype.sayName = function () {
+      console.log(this.name)
+  }
+  const a = create(Test, 'yck', 26)
+  console.log(a.name) // 'yck'
+  console.log(a.age) // 26
+  a.sayName() // 'yck'
+
+    */
+    /*
+ * 防抖 Debounce 一段时间内没有新的操作才执行最后一个事件流，当中如有其他操作则重新计时
+ * @param {*} func 需要防抖的方法
+ * @param {*} wait 延迟时间
+ * @param {*} immediate 是否立即执行，默认为false
+ */
+    function debounce (func, wait, immediate) {
+      let timeout, context, args, timestamp, result 
+      let later = function () {
+        let last  = Date.now - timestamp
+        // last小于wait继续倒计时
+        if (last < wait && last >= 0){
+          timeout = setTimeout(later, wait-last)
+        } else {
+          // last大于等于wait清楚定时器,解除context和args引用
+          timeout = null
+          // 不是立即执行
+          if (!immediate) {
+            result = func.call(context, args)
+            if (!timeout) {
+              context = args = null
+            }
+          }
+        }
+      }
+      return function () {
+        context = this;
+        args = arguments;
+        // 获取输入时的时间，和节流不同，小于延迟的时间都需要重新计时
+        let timestamp = Date.now()
+        // 如果没有定时器计时
+        if (!timeout) {
+          timeout = setTimeout(later,wait)
+        }
+        // 立即执行并且计时器为null,立即执行
+        let callNow = immediate && !timeout
+        if (callNow) {
+          result = func.call(context,args)
+          context = args =null
+        }
+        return result
+      }
+    }
+
+    function debounce(func,wait,immediate) {
+      var timeout;
+      return function () {
+          var context = this;
+          var args = arguments;
+
+          if (timeout) clearTimeout(timeout);
+          //立即执行版的意思是触发事件后函数会立即执行，然后 n 秒内不触发事件才能继续执行函数的效果。
+          if (immediate) {
+              var callNow = !timeout;
+              timeout = setTimeout(function(){
+                  timeout = null;
+              }, wait)
+              if (callNow) func.apply(context, args)
+          }
+          else {
+              timeout = setTimeout(function(){
+                  func.apply(context, args)
+              }, wait);
+          }
+      }
+    }
+
+function debounce(func, wait){
+      let timeout;
+      return function(){
+        const context = this;
+        const args = arguments;
+        if (timeout) clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          func.apply(context, args)
+        },wait);
+      }
+    }
+    /* 函数节流 */
+    function throttle (func, wait){
+      let pre = 0;
+      return function(){
+        const context = this;
+        const args = arguments;
+        let now = Date.now();
+        if (now - pre >= wait){
+          func.apply(context, args);
+          pre = Date.now();
+        }
+      }
+    }
+    function throttle  (func, wait) {
+      let timeout;
+      return function(){
+        const context = this;
+        const args = arguments;
+        if(!timeout){
+          timeout = setTimeout(() => {
+            timeout = null;
+            func.apply(context,args);
+          },wait)
+        }
+      }
+    }
+ 
+
+    Function.prototype.myCall = function (context) {
+      //第一个参数为对象a
+      var context = context || window;
+     
+      //此处this是指调用myCall的function
+      context.fn = this
+
+      // 将 context 后面的参数取出来
+      var args = [...arguments].slice(1)
+      //执行这个函数，并返回结果
+      var result = context.fn(...args)
+      //将this指向销毁
+      delete context.fn
+      return result
+    }
+
+      let a = {
+      value: 1
+      }
+    function getValue(name, age) {
+        console.log(name)
+        console.log(age)
+        console.log(this.value)
+    }
+    getValue.myCall(a, 1,2)
+    function deepClone(obj) {
+      function isObj(o) {
+        // return typeof o ==='object' || typeof o === 'function' && typeof o !== null
+        return  o instanceof Object
+      }
+      if (!isObj(obj)) {
+        throw new Error('非对象')
+      }
+      // 以上判断传入参数是否为object
+      let isArr = Array.isArray(obj)
+     
+    //  判断该object是否为数组的方法
+    //  ①对象 insratanceof Array(这个Object的原型链上能够找到Array构造函数的话，那么这个Object应该及就是一个数组，)
+    //  ②对象.constructor === Array(数组是有一个叫Array的函数实例化的。constructor属性是可以改写的)
+    //  ③Object.prototype.toString.call/apply(对象) === '[object Array]'; （每一个继承自Object的对象都拥有toString的方法。）
+    //  注：只有对象的toString方法会返回对象的类型，所以我们需要使用call或者apply方法来改变toString方法的执行上下文。
+    //  而数组和字符串自己的toString方法只会返回内容的字符串,需要注意改写Object原型链上的toString的情况
+    
+      // 判断传入参数是否为数组，用运算符展开
+      let newObj = isArr ? [...obj] : { ...obj }
+      //  Reflect.ownKeys如果是对象则返回['a', 'b'],,数组则返回index,长度为0返回length
+      Reflect.ownKeys(newObj).forEach(key => {
+        console.log(obj[key],'key')
+        //遍历对象的key，判断key是否为对象，若是，继续进行深拷贝
+        // 键 值
+        newObj[key] = isObj(obj[key]) ? deepClone(obj[key]) : obj[key]
+      })
+      console.log(newObj)
+      return newObj
+    }
+    var s = {a: 1, b: {c:3}}
+    const aa = deepClone(s)
+    console.log(a)
+    // a.getValue
+//     function throttle (fn, delay) {
+//     let now, lastExec, timer, context, args //eslint-disable-line
+//     let execute = function () {
+//       fn.apply(context, args)
+//       // 执行完的时间
+//       lastExec = now
+//     }
+
+//     return function () {
+//       context = this
+//       args = arguments
+
+//       now = Date.now()
+//       if (timer) {
+//         clearTimeout(timer)
+//         timer = null
+//       }
+
+//       if (lastExec) {
+//         let diff = delay - (now - lastExec)
+//         if (diff < 0) {
+//           execute()
+//         } else {
+//           timer = setTimeout(() => {
+//             execute()
+//           }, diff)
+//         }
+//       } else {
+//         execute()
+//       }
+//     }
+// }
+    </script>
+</body>
+</html>

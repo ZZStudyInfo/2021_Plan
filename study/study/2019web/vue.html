@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/* 
+  一、生命周期
+  ①beforeCreate
+    获取不到props和data中的数据，因为数据都初始化在initState中
+  ②created
+   能访问到数据，但组件还没挂载，所以看不到的 (请求数据)
+  ③beforeMount
+   创建虚拟dom
+  ④mounted
+   讲vdom渲染成真实dom并且渲染数据，递归挂载子组件，最后挂载根组件
+  ⑤beforeUpdate
+    数据更新前
+  ⑥updated
+    数据更新后
+  ⑦beforeDestroy
+    移除事件和定时器一系列销毁操作 避免内存泄露
+  ⑧destroyed
+  ⑨keep-alive独有的生命周期:分别为 activated 和 deactivated 
+    用keep-alive包裹的组件不会在切换时候被销毁，而是缓存到内存中并执行deactivated钩子
+    再切换回来执行activated钩子
+  二、单向绑定模拟双向绑定
+	:value="...."   model->view
+	v-on:input="fn($event.value)"  输入时把事件对象的value携带到方法，方法修改了model
+  数据检测：vue的数据是响应式，非响应式的情况如下
+	①数组数据变化： 
+      问题:	对数组使用了非变异 (non-mutating method) 方法（返回的了新数组）
+			解决： 对象合并
+
+      data:{arr:['xx','oo']}
+			问题：利用索引直接设置一个项|修改数组的长度时 ---this.arr[3]=11
+			解决：Vue.set(数组对象, key, value) | vm|this.$set(数组对象, key, value)
+	②对象的数据变化：
+			问题：data:{a:1}
+					a 数据是响应式的
+					vm.b='qq';  b 属性不是响应式的
+			解决：Vue.set(数组对象, key, value) | vm|this.$set(数组对象, key, value)
+  二、数据传递
+  ①父子通信
+  1.父--子: 通过子组件绑定自定义属性 把父数据 传给子组件的props,子组件不能直接修改 props
+  2.子--父: 通过子组件绑定自定义事件 把父事件 传给子组件 
+  结合 this.$emit(eventName,[..args])触发父方法 把子数据传给父组件
+  注: 1.还可以通过this.$refs+ref名称+数据/方法 访问到dom或组件实例，不是响应式
+      2.父访问子 this.$children+数据/方法,  子访问父this.$parent+数据/方法,不一定访问的到
+  3.sync 属性是个语法糖，可以很简单的实现子组件与父组件通信
+  <!--父组件中-->
+  <input :value.sync="value" />
+  <!--以上写法等同于-->
+  <!--父组件中-->
+  <input :value="value1" @update:value="v => value1 = v"/>
+  <!--子组件中-->
+  watch:{
+    // 设置监听 若props中的value改变 就更新value
+    value(v){
+       this.$emit('update:value', v)
+    }
+  }
+  4.$listeners
+  ②兄弟通信
+  ③跨多层次组件通信provide / inject
+  // 父组件 A
+  export default {
+    provide: {
+      data: 1
+    }
+  }
+  // 子组件 B
+  export default {
+    inject: ['data'],
+    mounted() {
+      // 无论跨几层都能获得父组件的 data 属性
+      console.log(this.data) // => 1
+    }
+  }
+  ④任意组件通信
+  1.event bus
+  let Bus = new vue()创建另一个根实例
+  bus.$emit(eventName,数据)---》发布
+  bus.$on(eventName,function(){}) 监听，可以订阅/不订阅
+  2.vuex
+  export default new Vuex.Store({
+    actions,getters,mutations,state
+  });
+①mapState 返回一个对象 获取多个状态 修改状态 把全局的 state 和 getters 映射到当前组件的 computed 计算属性中
+②mapGetters 仅仅是将 store 中的 getter 映射到局部计算属性:
+③mapMutations 将组件中的 methods 映射为 store.commit 调用 映射到局部方法里
+④mapActions store.dispatch 映射到局部方法里
+⑤modules
+Vuex 允许我们将 store 分割成模块（module）。每
+个模块拥有自己的 state、mutation、action、getter、甚至是嵌套子模块——从上至下进行同样方式的分割.
+const store = new Vuex.Store({
+  modules: {
+    a: moduleA,
+    b: moduleB
+  }
+})
+store.state.a // -> moduleA 的状态
+store.state.b // -> moduleB 的状态
+
+mutations: 同步修改state 时间类型(type)+回调函数(state,payload{})
+mutations: {
+  increment (state, payload) {
+    state.count += payload.amount
+  }
+}
+store.commit('increment', {
+  amount: 10
+})
+store.commit({
+  type: 'increment',
+  amount: 10
+})
+store.dispatch('increment')
+注：直接分发 mutation 岂不更方便？mutation 必须同步执行，Action就不受约束！
+我们可以在 action 内部执行异步操作
+ computed: {
+      ...mapState({
+        orderBuyParamList: (state) => state.buyProduct.list,
+        couponItemId: (state) => state.coupon.list[0] || ''
+      }),
+      // 使用对象展开运算符将 getter 混入 computed 对象中
+     ...mapGetters([
+       // 把 `this.doneTodosCount` 映射为 `this.$store.getters.doneTodosCount`
+      'doneTodosCount',
+      //  doneTodosCount () {
+      //   return this.$store.getters.doneTodosCount
+      // },
+      'anotherGetter',
+      // ...
+    ])
+  }
+methods: {
+    ...mapMutations([
+      // `mapMutations` 也支持载荷：
+      'increment' // 将 `this.increment(amount)` 映射为 `this.$store.commit('increment', amount)`
+    ]),
+     ...mapActions([
+      // `mapActions` 也支持载荷：
+      'increment' // 将 `this.increment(amount)` 映射为 `this.$store.dispatch('increment', amount)`
+    ]),
+}
+  
+// 子组件主要代码 就是监听他的改变 然后触发父组件监听的事件
+  三、mixin 和 mixins 区别
+  ①mixin
+  全局混入 如:封装好的ajax或者工具函数
+  Vue.mixin({
+    beforeCreate() {
+        // ...逻辑
+        // 这种方式会影响到每个组件的 beforeCreate 钩子函数
+    }
+  })
+  ②mixins
+  扩展组件的方式 抽离相同业务逻辑混入 如上拉下拉加载数据这种
+  注:mixins混入的钩子函数会先于组件内的钩子函数执行，并且在遇到同名选项的时候也会有选择性的进行合并
+
+  四、computed 和 watch 区别
+  ①watch
+  监听到值的变化就会执行回调，在回调中做一些逻辑操作
+  watch:{
+     leftActicityTime (val, oldval) {dosomething}
+  }
+  ②computed 依赖其他属性计算值,只有当计算值变化才会返回内容。并且 computed 的值有缓存。
+   computed: {
+    ifShowTag: function () {
+        return this.inputValue.length === 0
+    },
+  注: 与method的区别:	方法会每次调用，计算属性不会(只有在与之相关的元数据发生变化时，才调用)
+		计算属性的性能高: 适合做筛选
+		方法：适合在列表渲染使用，强制渲染执行
+  
+  五、v-show 与 v-if 区别
+  ①v-show，初始渲染开销大,元素总是会被渲染，并且只是简单地基于 CSS 进行切换。
+  ②v-if,切换开销大，若初始渲染条件为false,则不渲染元素;条件为真，才渲染元素
+
+  六、过滤器 自定义指令
+    定义过滤器
+    Vue.filter('number',function(data,digit=2){
+      // data==要过滤的数据
+      // digit=digit||2;
+      return data.toFixed(digit);
+    });
+    filters:{
+      number: function(data,digit=2){
+        // data==要过滤的数据
+        // digit=digit||2;
+        return data.toFixed(digit);
+      },
+		  过滤器名称2:函数(要过滤的元数据,参数)
+		}
+    使用过滤器
+    数据|过滤器名字number(..args)
+
+    定义自定义指令 functiom = bind + update 绑定到元素+数据更新
+    Vue.directive('color-swatch', function (el, binding) {
+      console.log(binding.value.color) // => "white"
+      console.log(binding.value.text)  // => "hello!"
+      el.style.backgroundColor = binding.value.color
+    })
+    directives: {
+      focus:{
+        // 当被绑定的元素插入到 DOM 中时……
+        inserted:function (el) {
+          el.focus()
+        }
+      }
+    }
+    使用自定义指令
+    <div v-color-swatch="{ color: 'white', text: 'hello!' }"></div>
+    <input v-focus>
+  六、组件中 data 什么时候可以使用对象
+  组件复用时所有组件实例都会共享data,一个组件修改data，就会影响其他所有组件
+  所以需要把data写成函数 每调用一次函数都会获取新的数据
+  注:new Vue()方式可以，因为根组件不复用，就没有共享data的问题 了
+
+  七、keep-alive 组件有什么作用
+  需要在组件切换的时候，保存一些组件的状态防止多次渲染 可以使用keep-alive
+  八、extend 能做什么
+  九、响应式原理
+  vue数据双向绑定是通过数据劫持结合发布者-订阅者模式的方式来实现的
+  Object.defineProperty()来劫持各个属性的setter，getter，在数据变动时发布消息给订阅者，触发相应的监听回调。
+  1、实现一个数据监听器Observer，能够对数据对象的所有属性进行监听，如有变动可拿到最新值并通知订阅者
+  2、实现一个指令解析器Compile，对每个元素节点的指令进行扫描和解析，根据指令模板替换数据，绑定更新函数
+  3、实现一个Watcher，作为连接Observer和Compile的桥梁，能够订阅并收到每个属性变动的通知，
+  执行指令绑定的相应回调函数，从而更新视图
+
+  注意:如果通过下标方式修改数组数据或者给对象新增属性并不会触发组件的重新渲染，因为 Object.defineProperty 不能拦截到这些操作
+  对于数组而言，大部分操作都是拦截不到的，只是 Vue 内部通过重写Set函数的方式解决了这个问题。
+  十、NextTick 原理分析
+  修改数据 DOM更新之后的回调 如果没有提供回调则返回一个promise对象
+   this.$nextTick(() => {this.focusSearch()})
+   this.$nextTick().then(() => {})
+   添加一个新的空的异步事件，执行完异步事件后调用callback
+
+  JS 执行是单线程的，它是基于事件循环的。事件循环大致分为以下几个步骤：
+（1）所有同步任务都在主线程上执行，形成一个执行栈（execution context stack）。
+（2）主线程之外，还存在一个"任务队列"（task queue）。只要异步任务有了运行结果，就在"任务队列"之中放置一个事件。
+（3）一旦"执行栈"中的所有同步任务执行完毕，系统就会读取"任务队列"，看看里面有哪些事件。
+    那些对应的异步任务，于是结束等待状态，进入执行栈，开始执行。
+（4）主线程不断重复上面的第三步。
+主线程的执行过程就是一个 tick，而所有的异步结果都是通过 “任务队列” 来调度
+
+我们了解到数据的变化到 DOM 的重新渲染是一个异步过程，发生在下一个 tick。
+这就是我们平时在开发的过程中，比如从服务端接口去获取数据的时候，数据做了修改，
+如果我们的某些方法去依赖了数据修改后的 DOM 变化，我们就必须在 nextTick 后执行。比如下面的伪代码:
+getData(res).then(()=>{
+  this.xxx = res.data
+  this.$nextTick(() => {
+    // 这里我们可以获取变化后的 DOM
+  })
+})
+*/
+</script>
+</html>

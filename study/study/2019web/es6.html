@@ -1,0 +1,36 @@
+一、新增数据结构(set,map，symbol)
+1.symbol
+①symbol作为独一无二的属性值，可传入字符串或对象作为参数，以区分两个symbol,不能进行运算，不能new,
+因为生成的 Symbol 是一个原始类型的值，不是对象。可转字符串货布尔值。
+let mySymbol = Symbol();
+Object.defineProperty(a, mySymbol, { value: 'Hello!' });
+let a = {
+    [mySymbol]: 'Hello!'
+  };
+  a[mySymbol] = 'Hello!';
+②Symbol 值作为对象属性名时，不能用点运算符。
+③Reflect.ownKeys方法可以返回所有类型的键名，包括常规键名和 Symbol 键名。
+let obj = {
+    [Symbol('my_key')]: 1,
+    enum: 2,
+    nonEnum: 3
+  };
+  
+  Reflect.ownKeys(obj)
+  //  ["enum", "nonEnum", Symbol(my_key)]
+  ④在不同处使用相同symbol，Symbol.for 可实现，Symbol.keyFor方法返回一个已登记的 Symbol 类型值的key。
+  let s1 = Symbol.for("foo");
+    Symbol.keyFor(s1) // "foo"
+
+    let s2 = Symbol("foo");
+    Symbol.keyFor(s2) // undefined
+
+2.set(类似于数组，但是成员的值都是唯一的,可对数组和字符串去重 返回值为对象)
+[...new Set('ababbc')].join('')
+// "abc"
+3.map 
+const m = new Map();
+
+m.set('edition', 6)        // 键是字符串
+m.set(262, 'standard')     // 键是数值
+m.set(undefined, 'nah')    // 键是 undefined

@@ -1,0 +1,19 @@
+共同点：
+都支持Promise API
+都同时支持Node和Browser环境
+都支持请求／响应拦截器
+都支持自动转换 JSON
+不同点：
+fetch
+①必须手动设置header的 content-type，Fetch不会自动设置。
+②必须手动设置  credentials，Fetch默认不带cookie。
+③不支持请求／响应拦截器，这在设置一些全局的参数、请求头时很有用。
+④不支持Node 浏览器支持程度不同。
+axios
+①axios支持请求取消和全局配置
+fly 不支持请求取消，fly的配置支持实例级别和单次请求级别
+
+注：微信小程序的 javascript 运行环境和浏览器不同，页面的脚本逻辑是在JsCore中运行，
+JsCore是一个没有窗口对象的环境，所以不能在脚本中使用window，也无法在脚本中操作组件，
+JsCore中也没有 XmlhttpRequest对象，所以jquery 、zepto、axios这些在小程序中都不能用，
+而此时，正是 fly 大显身手的时候。

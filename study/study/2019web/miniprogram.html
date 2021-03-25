@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/* 
+
+  一、小程序配置问题
+  app.json   底部tab, 标题栏和路由等设置、 设置网络超时时间等
+            window字段 —— 定义小程序所有页面的顶部背景颜色，文字颜色定义等。
+  App.js 设置一些全局的基础数据等；
+  App.wxss 公共样式，引入iconfont等；
+            
+  project.config.json 项目文件配置  用得最多的就是配置是否开启https校验；
+  index.json 配置当前页面标题、引入组件、是否允许下拉刷新、自定义设置等
+
+  index.wxml  和html的异同 
+  同：由标签、属性等等构成
+  异：①标签名不一样；从 div p span变成view text button
+  ②多了一些wx:if 和{{}}表达式 不用js操控dom 逻辑和结构分离开  MVVM 的开发模式（例如 React, Vue）
+  ③wxml只能在小程序开发工具中预览 html在浏览器中预览
+  ④小程序没有windows对象和dom树
+
+  index.wxss  和css异同
+  具备css大部分特性  做了一些修改和扩充
+  ①wxss支持rpx
+  ②wxss提供全局样式和局部样式 app.wxss--全局样式 index.wxss局部样式
+  ③wxss仅支持css部分选择器（id、class、ele、::after、::before）
+
+  二、生命周期
+  onLoad  页面加载 只调用一次 可获取当前页面路径中的参数
+  onShow  页面显示/切换前台 用来发送数据请求
+  onReady 页面初次渲染完成 只会调用一次
+  onHide  页面隐藏/切换后台 底部 tab 切换到其他页面或小程序切入后台等。
+  onUnload  页面卸载时触发，如redirectTo或navigateBack到其他页面时
+  onPullDownRefresh 页面下拉
+  onReachBottom 上拉触底
+  onShareAppMessage 转发
+  onTabItemTap   当前是tab页时，点击 tab 时触发
+
+  三、路由问题
+  ①wx.navigateTo/wx.navigateBack  
+  保留当前页面，跳转到应用内的某个页面。但是不能跳到 tabbar 页面
+  使用 wx.navigateBack 可以返回到原页面。小程序中页面栈最多十层。
+  关闭当前页面，返回上一页面或多级页面。可通过 getCurrentPages() 获取当前的页面栈，决定需要返回几层。
+  ②wx.redirectTo // 关闭当前页面，跳转到应用内的某个页面。但是不允许跳转到 tabbar 页面。
+  ③wx.switchTab // 跳转到tabBar页面（在app.json中注册过的tabBar页面），同时关闭其他非tabBar页面
+  ④wx.reLanch  // 关闭所有页面，打开到应用内的某个页面。
+
+注：navigateTo, redirectTo 只能打开非 tabBar 页面。
+  switchTab 只能打开 tabBar 页面。
+  reLaunch 可以打开任意页面。
+  页面底部的 tabBar 由页面决定，即只要是定义为 tabBar 的页面，底部都有 tabBar。
+  调用页面路由带的参数可以在目标页面的onLoad中获取。
+
+  四、触发事件的异同
+  bind事件绑定不会阻止冒泡事件向上冒泡
+  catch事件绑定可以阻止冒泡事件向上冒泡 
+  tap/tounchmove
+
+  五、数据传递
+  ①普通组件
+  1.通过页面跳转url携带的参数，然后在onload生命周期里 接收option去拿传过来的参数
+  // 源页面A相关代码
+  wx.navigateTo({
+    url: "/pages/mypage/mypage?a=1&b=2"
+  })
+  
+  // 目标页面B相关代码
+  Page({
+    onLoad: function (options) {
+      var a = options.a; // 值：1
+      var b = options.b; // 值：2
+    }
+  })
+  注：适用于目标页面还没有创建的情况。因为一个页面的onLoad方法在页面的生命周期中，只执行一次。
+  2.使用全局数据存储
+  ①存到app对象上的方式
+  var app = getApp()
+  app.globalData.mydata ={}
+
+  注：适用于在一个页面存储了 ，返回到上一个也能获取这些全局数据
+  ②存到数据缓存的方式 
+  wx.setStorage({
+    key: "mydata",
+    data: {a:1, b:2},
+    success: function () {
+      wx.navigateBack();   //返回上一个页面
+    }
+  })
+  ③从页面路由栈中获取和操作目标page
+  var page = getCurrentPage();
+  var currPage = pages[pages-1] //当前页面
+  var prevPage = pages[pages-2] //上一个页面页面
+  //直接调用上一个页面的setData存储数据在上一个页面
+  preData.setData({
+    myData:{}
+  })
+  3.使用组件模板 template传递参数
+   接受外部传入的数据
+ <component-product-list product-list="{{productList}}"></component-product-list>
+  properties: {
+    // 这里定义了productList属性，属性值可以在组件使用时指定
+    productList: {
+      type: Array,
+      value: [],
+    }
+  },
+ 4.e.currentTarget.dataset
+
+
+  六、双向绑定和vue不一样的地方 
+  this.setData()
+
+  六、登录授权问题
+  ①调用wx.login获取登录凭证(code)
+  ②把临时code传给服务器获取 openid(用户id)和session_key(会话密钥
+  ③客户端获取加密后的code存在本地，以便发起业务请求
+  注：wx.login换取的code只能使用一次,如果需要新code只能重新调用wx.login接口
+
+  ①判断用户有没有授权 若有 获取wx.getStorageSync('_token')token 判断是否为空 
+  ②若不为空 设置请求拦截 请求头设置token和content-type 携带登录态发送请求
+  ③若为空 调用wx.login(参数)获取登录凭证code encryptedData iv
+  ④将临时登录凭证传给服务器端
+  // ①判断用户有没有授权 若有 获取wx.getStorageSync('_token')token 判断是否为空 
+  // ②若不为空 请求头设置token和content-type 携带登录态发送请求
+  // ②若为空 重启动 调wx.getUserInfo 和wx.login获取 code encryptedData iv
+  // ③调用小程序登录函数(code encryptedData iv),获取加密后的code存在本地并设置请求头
+
+
+  七、请求封装
+   wx.fly.interceptors.request.use((request)=>{
+          request.headers["x-auth-token"] = _token
+          request.headers["content-type"] = 'application/x-www-form-urlencoded'
+    })
+
+  function wxPromisify (method, opts) {
+  return new Promise(function (resolve, reject) {
+    wx[method](Object.assign(opts || {}, {
+      success: function (res) {
+        resolve(res)
+      },
+      fail: function (err) {
+        if (!err.errMsg) {
+          wx.showModal({
+            title: '提示信息',
+            content: '通信失败',
+            showCancel: false
+          })
+        }
+        reject(err)
+      }
+    }))
+  })
+}
+*/
+</script>
+</html>

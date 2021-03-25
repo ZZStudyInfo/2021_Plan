@@ -1,0 +1,22 @@
+##### 浏览器
+
+- 事件机制
+  - 事件触发三阶段
+  - 注册事件
+  - 事件代理
+- 跨域
+  - JSONP
+  - CORS
+  - document.domain
+  - postMessage
+- Event loop
+- 存储
+  - cookie, localStorage, sessionStorage
+  - indexDB
+  - Service Worker
+- 进程和线程
+- 渲染机制
+  - load 和 DOMContentLoaded区别
+  - 图层
+  - 重绘和回流
+  - 减少重绘和回流
